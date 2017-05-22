@@ -1,0 +1,128 @@
+Shadow Widget 非正经入门（之五）
+------------
+
+&nbsp;
+
+本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇解释 Shadow Widget 中类 Vue 的控制指令，与指令式界面设计相关。
+
+&nbsp;
+
+## 指令式界面设计
+
+Vue 与 Angular 都支持用控制指令描述界面，比如 Vue 中循环创建多个节点：
+
+``` js
+<div v-for="(index, item) in items">
+  {{ index }} {{ item.message }}
+</div>
+```
+
+Angular 也有类似 `v-for, v-if, v-else` 等控制指令，这些对于快速定义用户界面很有用，而 React 实现类似功能需借助 JS 编程，在便捷、直观方面不如 Angular 与 Vue。Shadow Widget 通过引入可计算属性与 MJI 解释器，弥补了 React 这项缺陷。
+
+## 节点引用
+
+界面设计中常需要照着一个构件的样式，复制出多个，比如下面 `btn2` 按钮，保持与 `btn1` 一致的样式：
+
+``` html
+  <span $=Button style='{{"background":"#eee","borderColor":"#ccc"}}' 
+        key='btn1'>Test 1</span>
+  <span $='//btn1' key='btn2'>Test 2</span>
+```
+
+Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指定 WTC 类（如上面 `$=Button`）不冲突，因为表达引用时，字串值必是路径格式，首字母必是 `'.'` 或 `'/'`，而指示 WTC 类，首字母必定不是这两个。系统能自动识别这两种用法，用于路径引用时，我们习惯用引号括起来，而用作 WTC 类时，不加引号（不必担心，浏览器会自动把它看成字串的），这么书写理解起来很清晰。
+
+## 开启解释执行的上下文环境
+
+控制指令是可计算属性中的一种，可计算属性是一种通过脚本表达式，借助 MJI (Mini Javascript Interpreter) 解释器动态解析计算的属性。比如：
+
+``` html
+<span $=Button style='{{"background":"#eee","borderColor":"#ccc"}}' 
+      key='btn1'>Test 1</span>
+<span $='//btn1' key='btn2' data='{{"desc":"Test 2"}}' 
+      $html="duals.data.desc"></span>
+```
+
+这里 `$html` 是可计算属性，这段代码运行效果与前面等同。
+
+须注意，可计算属性只在开启 MJI 解释运行环境后才生效，否则它只是常规字串。解释运行环境按需动态开启，用完即自动销毁，有此环境 MJI 才能维护脚本计算的上下文运算关系。有下面几种开启解释运行环境的方式：
+
+1. 以 `$=path` 建立引用，如上面举例，如果引用位置尚不存在解释运行环境，系统将自动创建一个。
+2. 用 `$for=expr` 或 `$$for=expr` 指示将一层调用空间压入栈，系统自动检测当前是否有解释运行环境，若没有，也自动创建。   
+有关 `$for` 与 `$$for` 的差别，请参考《Shadow Widget 用户手册》中 "2.5.4 循环指令"。
+3. 用 `$for=''` 开启一个调用空间，如果当前没有解释运行环境，系统自动创建。
+
+## 栈式调用空间
+
+与常规编程语言类似，MJI 解释运行环境也有调用栈，一个 `$for` 循环要使用一套 `item, index, count` 变量，多个 `$for` 循环嵌套使用，就形成多套 `item, index, count` 变量的栈式结构。
+
+在 MJI 解释运行环境中，按如下方式使用首层调用空间中的变量：
+
+``` js
+  props(0).attr   duals(0).attr  state(0).attr
+  item(0)  index(0)  count(0)
+```
+
+或简写如下：
+
+``` js
+  props.attr   duals.attr  state.attr
+  item  index  count
+```
+
+如果读上一层栈中变量：
+
+``` js
+  props(-1).attr   duals(-1).attr  state(-1).attr
+  item(-1)  index(-1)  count(-1)
+```
+
+再往一层，则用 `-2` 指示，其它类推。
+
+## 举一个例子
+
+``` html
+<div $=Panel key='top' height='{null}'>
+  <div $=Div key='msg' dual-required='{30}' $for=''
+    dual-data='{[{"name":"Wayne","age":20},{"name":"George","age":35}]}'>
+    <div $=Ul width='{0.9999}' $title='duals.data.length + " people"' 
+         $for='item in duals.data'>
+      <div $=Li $key='"if_" + index' $if='item.age >= duals(-1).required'
+           $html='item.name + " is old"'></div>
+      <div $=Li $key='"el_" + index' $else=''
+           $html='item.name + " is young"'></div>
+    </div>
+  </div>
+</div>
+```
+
+运行效果如下：
+
+&nbsp;&nbsp; ![GUI](md/res/D170513-01/for_if_else.png)
+
+这个例子包含知识点较集中，讲解几个要点：
+
+1. 用 `$for=''` 开启一个解释执行的计算环境，后面的 `$for='item in duals.data'` 则进入下一层，当前调用空间将压栈。
+
+2. 内层 `$for` 中的可计算属性要引用上层调用空间，这么书写：`duals(-1).required`
+
+3. `$if` 与 `$else` 也是控制指令，有条件的显示特定节点。还有一个 `$elif` 没举例到，含义为 `"else if"`，用法可类推。
+
+4. `$for` 下用来表达循环生成的节点，要显式指定 key 值，如本例的 `$key="if_"+index` 与 `$key="el_"+index`，这里 `index` 是循环序号，依次取值为 `0, 1, 2...`
+
+## 更多功能
+
+本系列博文提供引导式入门介绍，过多细节略去不讲。关于指令式界面设计的内容，重要些的还有：
+
+1. 对 `$for` 组装子成员提供过滤、排序等功能
+2. 可计算表达式能用于异步计算，比如发起 ajax 调用
+3. 提供 flex 布局面板，方便可视化的快速搭建一个页面
+4. 支持模板定义（`TempPanel, TempDiv`），便于定制化引用、批量引用
+5. 用导航面板与选项构件，快速搭建列表导航、分页导航等应用，导航面板还为绝对路径分段，让其下节点能用 `"./xx"` 或 `"../../xx"` 相对路径方式做引用。
+6. 选项构件支持弹出浮窗，支持 trigger 触发器等
+
+细节请阅读《Shadow Widget 用户手册》。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key="auto0"></div>
+<div $=ScenePage key="auto1" no-show="1"></div>

@@ -1,0 +1,187 @@
+Shadow Widget 非正经入门（之三）
+------------
+
+&nbsp;
+
+本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇讲解双源属性、不可变数据、事件驱动等。
+
+&nbsp;
+
+## React 中的隐式双源
+
+``` js
+var mainComp = null;
+
+function Welcome(props) {
+  return <h1>Hello, {props.name}</h1>;
+}
+
+class DivText extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {name:'Wayne'};
+    mainComp = this;
+  }
+  
+  render() {
+    return (
+      <div key='main'>
+        <Welcome key='txt' name={this.state.name} />
+      </div>
+    );
+  }
+}
+
+ReactDOM.render(
+  <DivText />,
+  document.getElementById('root')
+);
+
+setTimeout( function() {
+  mainComp.setState({name:'George'});
+},5000);
+```
+
+这个例子创建的 component 树如下图，`main` 节点的 `state.name` 传递给 `txt` 节点用作 `props.name`。`txt` 节点初始显示 `"Hello, Wayne"`，过 5 秒后切换为 `"Hello, George"`。
+
+```
+ <root node>
+  +-- main      // div
+  |   +-- txt   // h1
+```
+
+我们研究一下 5 秒后切换都发生了什么，`mainComp.setState({name:'George'})` 一句更改 `main` 节点的 `state.name`，然后系统触发下级 `txt` 节点的 `props.name` 变化，再驱动 `txt` 节点内容刷新。
+
+本处 React 技术实现让初学者很费解，`main` 节点的 `render` 函数用 JSX 返回 Element，并非每次渲染都用 `<Welcome>` 创建子节点。
+
+``` js
+  render() {
+    return (
+      <div key='main'>
+        <Welcome key='txt' name={this.state.name} />
+      </div>
+    );
+  }
+```
+
+而是首次渲染时创建一次，其后 `render()` 调用只对已存在的节点做更新，由 `props.name` 变化驱动子节点内容刷新。所以，**上面 `txt` 节点的 `props.name` 对节点自身来说，是不变量，但对父节点来说，是可变量**。由 `state.xxx` 驱动刷新与 `props.xxx` 驱动刷新本质是一回事，只不过 React 编程模型在表面弄了一点限制。
+
+`props.xxx` 驱动的刷新是一个源头，`state.xxx` 驱动的刷新是另一个源头，合起来是 "双源驱动"。
+
+## 改造双源驱动
+
+由于 React 限定本节点 `props.xxx` 是只读的，我们通过改造，让一个节点既接受 `props.xxx` 驱动，也接受 `state.xxx` 驱动。让 React 隐式的双源驱动，变成显式的双源驱动，如下：
+
+``` js
+var txtComp = null;
+
+class Welcome extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {name:props.name};
+    this.oldName = props.name;
+    txtComp = this;
+  }
+
+  render() {
+    var name = this.state.name;
+    if (this.oldName !== this.props.name)
+      name = this.state.name = this.oldName = this.props.name;
+    return <h1>Hello, {name}</h1>;
+  }
+}
+```
+
+这样，在 `txt` 节点，既可用 `txtComp.setState({name:'George'})` 驱动刷新，也可由父节点传入的 `props.name` 变化来驱动刷新。我们额外要做的是，在 `txt` 节点用 `this.oldName` 记录 `props.name` 旧值，由 `this.oldName !== this.props.name` 来识别传入 `props.name` 是否变化了。
+
+这么改造的意义在于：
+
+1. 自身状态变迁与父级驱动变迁，是两种普遍存在的现象，我们引用正规的 "双源驱动" 概念，便于将两种源头归一，如后面叙述，用 `this.duals.xxx` 表达，归一后才能构造事件发布与订阅的机制。
+
+2. React 让 props 属性只读的设计有点尴尬，有违普遍认知。   
+如前面介绍，它不是不可变，而是限定本级与下级不可修改，这个规则对保障单向数据传递有利。但大众对 DOM 节点的认知是这样的，以 `<input>` 为例，`type='button'` 这个属性可以用 `props.type` 表达，因为生存周期里它不该有变化，而 `title='for test'` 属性应让本节点参与管理，生存期内可变。
+
+让自身节点管理类似 `props.name, props.title` 的属性，大致有两种方法，其一，采取上面介绍的方法，让两个源头归一，再驱动本节点输出。其二，按严格的单向数据流要求，把代码写成下面样子：
+
+``` js
+class Welcome extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  
+  setName(newName) {
+    mainComp.setState({name:newName});
+  }
+  
+  render() {
+    return <h1>Hello, {this.props.name}</h1>;
+  }
+}
+```
+
+也就是借助父节点的 `setState()` 实现刷新，理论上，这也是单向数据流，理解有点别扭，自身节点的属性不能直接管理，非要到父节点跑一圈。
+
+<div $=".body.auto1.flow"></div>
+
+Shadow Widget 双源驱动的优点在于 **"让 DOM 节点功能回归本原"**，让 `props.xxx` 服务于生存周期中不变量，让 `duals.xxx` 服务于可变量，`state.xxx` 也服务于可变量，但倾向于用来表达自身节点的私有状态。
+
+[reflux](https://github.com/reflux/refluxjs) 为实现 React flux 机制，仿 component 接口设计了 store，如果没有上述 `props.xxx` 限制，我相信把 component 与 store 合一远优于现有设计。回归原本的设计好处是潜在的，因为倾斜的地基会导致上层
+建筑更加倾斜。
+
+## 数据侦听机制
+
+Shadow Widget 将双源驱动归一后，用 `duals.attr` 存取属性，而且系统内部对读写 `duals.attr` 做了封装，"读属性" 自动转从 `state.attr` 读值，"写属性" 则封装成事件驱动机制，等效于调用 `comp.setState({attr:value})`，但它所做的事远不止这个，还包括：
+
+1. 用户可以调用 `comp.defineDual(attr,setterFunc)` 注册自定义的 setter 函数，甚至对同一 `duals.attr` 多次注册不同 settrer 函数，比如基类定义一个 setter 函数，继承类中再定义另一个 setter，两个 setter 会依顺被调用。即 `duals.attr` 的 setter 也具有一种可继承的机制。
+
+2. `duals.attr` 可被侦听，被侦听后源头 `duals.attr` 若发生变化，相应的侦听函数将自动被调起。
+
+3. 多个 component 节点的双源属性可以串接，源头更改其它地方会自动更新。
+
+4. 对某节点的 `duals.attr` 赋值，会导致多种联动响应，如果导致本节点其它双源属性更新，更新将在同一周期立即进行，如果导致其它节点的双源属性更新，将在下一周期在其它节点 `render()` 时进行，如果触发侦听事件，也在下一周期调用侦听函数。Shadow Widget 对 `duals.attr` 赋值的设计，已兼顾考虑了本节点内双源属性递归回调的效率，也保证了数据流传递的单向性。
+
+5. 在各节点注册 `duals.attr` 的 setter 函数、侦听函数，能自动适应它的生存周期。比如 B 节点侦听 A 节点的 `duals.attr`，无论 A 节点，还是 B 节点先被卸载，侦听链都会自动断开。
+
+侦听源节点的双源属性，常见代码有这么两种写法：
+
+``` js
+  sourceComp.listen('attr',targetComp,'attrMethod');
+  sourceComp.listen('attr',function(value,oldValue){});
+```
+
+第 1 行写法的效果是：sourceComp.duals.attr 发生变化后，自动触发 targetComp['attrMethod'] 的函数调用。第 2 行则触发由参数指定的回调函数。
+
+## 数据更新的判断依据
+
+Shadow Widget 采用 "恒等比较" 的方式判断两个数值是否更改为，在 `comp.duals.attr = value` 与 `comp.setState({attr:value})` 语句中，当所赋新值（`value`）与旧值恒等（即 `===`），则视作数据未更新，也就不会触发相应的 setter 调用或 listen 调用。
+
+Shadow Widget 已为各构件配置 `shouldComponentUpdate()` 与 `componentWillReceiveProps()` 缺省处理，除非有特别理由，您不应改变缺省 "以各属性新旧值是否恒等" 的判断方式。
+
+至于如何对 Array 或 Object 快速构造新数据，以便被系统判断为 "非恒等"，我们建议用 React addon 提供的 `update` 接口，Shadow Widget 已缺省内置该函数，即 `ex.update()`，请参考 Shadow Widget 的 API 手册。
+
+## 自动定义的双源属性
+
+双源属性一般要调用 `comp.defineDual()` 注册后才使用，但对于 DOM 节点内置属性是例外，如 `title, id, name` 等，这些属性只要节点在创建时，传入的 `props` 用到了，就会被系统自动注册为双源属性。《Shadow Widget 用户手册》的 "2.2.2 定义双源属性" 有这些属性的完整列表。
+
+另外，命名为 `data-*, aria-*, dual-*` 的属性，也自动注册为双源属性。
+
+自动注册双源属性的设计目的是为了简化编程，如果遇到不想变成双源属性却自动注册了的情况，不使用 `duals.xxx` 即可。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=rewgt.DrawPaper key='flow' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{261}' height='{145}' style='{{"zIndex":"-998"}}' offset-x='{-123}' offset-y='{-52}' left='{-198}' top='{-139}' def-id='_1494560749'>
+    <div $=rewgt.SvgPanel key='auto2' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{141}' top='{71}' width='{112}' style='{{"strokeColor":"#888","fillColor":"#eee"}}' svg.cfg='{[0,[null,[["auto5",-2,"auto3"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>main 节点</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto3' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{236}' top='{143}' width='{108}' style='{{"strokeColor":"#888","fillColor":"#eee","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"141px","top":"71px","width":"88px","height":"40px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iNDAiIHZpZXdQb3J0PSIwIDAgMTAwIDQwIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPScjODg4JyBmaWxsPScjZWVlJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9Jyc+PHJlY3QgeD0nMCcgeT0nMCcgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgcng9JzUnIHJ5PSc1Jy8+PC9nPjwvc3ZnPg==\")"}}' svg.cfg='{[0,[null,[["auto7",-2,"auto2"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>txt 节点</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto5' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{221}' top='{59}' width='{103}' height='{110}' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' svg.cfg='{[-2,["",0,0,2,0,0,23,11,39,54],"lib/res/arrows.svg.json"]}' data-from='auto2'></div>
+    <div $=rewgt.SvgPanel key='auto7' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{165}' top='{87}' width='{105}' height='{110}' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' svg.cfg='{[-2,["",0,0,2,41,54,16,43,0,0],"lib/res/arrows.svg.json"]}' data-from='auto3'></div>
+    <div $=rewgt.SvgPanel key='auto8' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{235}' top='{60}' width='{128}' style='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>setState()</pre>
+    </div>
+  </div>
+</div>

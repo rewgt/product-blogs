@@ -1,0 +1,300 @@
+Shadow Widget 非正经入门（之四）
+-------------
+
+&nbsp;
+
+本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇解释 Shadow Widget 在 MVC、MVVM、Flux 框架之间如何做选择。
+
+&nbsp;
+
+## React Flux 框架
+
+Facebook 官方为 React 提出了 flux 框架，也自己实现了一个 flux.js，尽管这个库设计得很差劲，但所有第三方为 React 开发的单向数据流方案，起点都是该库官方所提的 [Flux concepts](https://github.com/facebook/flux/tree/master/examples/flux-concepts)，下面是经典结构图：
+
+![flux diagram](md/res/D170512-01/flux_flow.jpg)
+
+Action 可简单理解为指令（或命令），由命令字 type 与命令参数 data（或称 payload）组成。Dispatcher 是分发器，Store 是数据与逻辑处理器，Store 会在 Dispatcher 注册针对各个命令字的响应回调函数。View 就是 React Component，View 常使用 Store 中的数据并订阅 Store 发生变化来刷新自身显示。
+
+几个部件之间数据单向流动，如下：
+
+```
+  Action -> Dispatcher -> Store -> View
+```
+
+形成单向流动的原理较简单，大致这样，Store 在 Dispatch 注册的回调函数，由 Action 触发，Dispatcher 解析命令字，找出相应回调用函数实现调用即可。当 Dispatcher 按如下方式触发回调时，回调函数具备事件的特性。
+
+``` js
+  setTimeout( function() {
+    callback();
+  },0);
+```
+
+如果立即调用 callback，那只是回调，如果延时 0 秒会让 callback 在下个周期被调用，就成事件了，单向数据流因此得到保证。
+
+当然，上面介绍非常简略，把核心机制讲明白，reflux、redux 让注册回调变事件也都用这个机制。当然，事件化回调的处理过程可能很复杂，比如 Dispatcher 还提供 `waitFor()` 等待一项或多项 Action 的接口，我们略去不细讲。
+
+## React 中的 MVC
+
+React 实现的虚拟 DOM 部分（即核心库 `react.js` 与 `react-dom.js`）是 MVC 中的 `"V"`，其 MVC 框架图如下：
+
+![React MVC](md/res/D170512-01/mvc.png)
+
+当你只使用 React 的核心库，未使用 reflux、redux 等单向数据流机制时，所用的 MVC 就是上图样子。如何构造 Controller 与 Model 是自由的，甚至你想将它改造成 MVVM 也是自由的，毕竟 React 的核心库只提供虚拟 DOM 映射，与 HTML 原生的 DOM 一起提供 `"View"`。后面我们真的要介绍怎么改成 MVVM。
+
+Flux、MVC、MVVM 这三者是对等的架构，我们不能直接将 Flux 框架往 MVC 上套。
+
+## 复杂环境对 MVC 框架的影响
+
+在 React 中使用 MVC 主要缺陷是：当应用规模变大，`M, V, C` 之间依赖关系会变复杂。下图还不算太复杂，只用到 2 个 Module。
+
+![complex mvc](md/res/D170512-01/complex_mvc.gif)
+
+React 虚拟 DOM 对真实 DOM 做了一次抽像，附加 `props`、`state` 等概念，再加上异步时序干扰，原先还勉强玩得转的 MVC，已变得很不好用，开发、调试、定位问题都变困难了。
+
+引入 Flux 能有针对性的缓解上述困难。其一，用单数据流向串接各 View，让与 Model 交互的那个 View（也称 Controller View）承担设计复杂性，其它 View 只做简单工作，如展示界面、简单响应鼠标点击等操作。
+
+![controller view](md/res/D170512-01/mvc_controller.gif)
+
+其二，用 Action 与 Dispatcher 简化 Controller，不弄那么多 Controller，归总到一个 Dispatcher。其三，采用 Functional Reactive Programming 方法构造响应式的单向数据流机制，以此应对异步时序问题。
+
+React 生态链中有多种 Flux 实现，他们本质一样，表面差别不算大，通常几句话就能概括。reflux 采用多 store 方案，把用于集中分发的 Dispatcher 简化掉了，redux 采用单 store 方案，把分发 Action 后的处理分解给众多 Reducer 函数，也就是说，上图多个 Store 的功能，用 "单 Store + 众多 Reducer 函数" 替换。
+
+## Shadow Widget 与 Redux 走在两个方向上
+
+Redux 最大优点是实施彻底函数式编程，最大缺点也是彻底函数式。它本身并未简化设计复杂性，只是转移复杂性，但按官方原生的 Flux 概念，我们是按对象方式理解一个个 Store 的，在设计时，处理 Store 与 View，以及与 Action 之间关系时，都按对象方式去思考的，现在把复杂性转移到众多 reducer 函数上，函数式思维不利于设计分解（相对对象化思维而言）。
+
+Redux 之所以能盛行，与 React 自身限制有关。React 的虚拟 DOM 树限制数据单向（向下）传递，跨节点读取属性极不方便，如果我们把所有服务于 render 的 state 数据，独立到节点之外的全局函数（reducer）中去组装呢？所有用到的 state 串一起，形成一个大的全局变量（就是单 Store），reducer 函数想怎么读就怎么读。这个方案以大幅度函数式改造为代价，来突破 React 的限制。
+
+Shadow Widget 做的正相反，**尝试维持对象化思维习惯**，把 Store 与 ViewModel 合一（后面还有详细说明）以便减轻思考负担；通过建立 Widget 树，用 `this.componentOf()` 快速检索相关节点，以求方便的存取属性；再设计 duals 双源属性，建立一套能自动识别数据变化，并驱动单向数据流的机制。
+
+## Controller View 数据传递
+
+我们研究一下 Controller View 与 Store 对接及与下级 View 的连接关系，取上图局部，放大讲解，如下：
+
+![controller view](md/res/D170512-01/control_view.gif)
+
+当 Store 中有数据更新，通知 Controller View 更新界面，Controller View 就从 Store 读得 state 数据，来更新自己的 state。而自身 state 变化将触发下级 View 联动更新，变化的信息在各子级借助 props 属性实现传递。
+
+为下文讲解作准备，这里我们先拎一拎 Store 该具备的特性：
+
+1. 要提供事件通知功能，当 Store 中的 state 数据有变化，通知 Controller View 刷新界面。
+2. 对 Controller View 暴露 state 数据，有两种设计可选，一是让事件通知中带 state 数据，二是事件通知不带数据，要由 Controller View 主动到 Store 查询。结合 FRP 编程特点，第二个设计更好，如果数据连续多次更新，从 Store 读数据应合并为一次，取最新值。
+3. 何时通知 Controller View 刷新可能比较复杂，涉及条件组合，比如要 Action A 与 Action B 都发生后，才能触发事件通知。
+
+## 向 MVVM 演化
+
+我们换一个角度看 flux 框架，传递 Action 相当于 `"emit <Event>"`，将它弱化考虑，另外，Dispatcher 也可弱化，reflux 相比官方的 React flux，一个重要改进就是去掉 Dispatcher，工具复杂性因此降了不少。
+
+![simple flux](md/res/D170512-01/simple_flux.gif)
+
+这么弱化、简化后，Flux 框架就剩 Store 与 View，参照 MVC 框架，这里 Store 与 MVC 中 Model 是对应的，某种程度上说，Flux 概念与 MVC 具备一定兼容性。
+
+reflux 的 Store 仿 React Component 设计 API，学习成本进一步降低，遗憾的是它是多 Store 结构，一个 Store 对应一个 View（有时对应多个），Store 变多后容易让开发者感到困惑，许多属性设计一时想不清楚该放在 Store，还是放在 View，经常换来换去。这里我没说多 Store 设计不对，单 Store 有单 Store 的问题。而是，多 Store 与 多 View 之间如何思考定位有点拧巴，不像 MVVM 那么直接。
+
+![MVVM](md/res/D170512-01/mvvm.jpg)
+
+MVVM 采用双向绑定，View 的变动自动反映到 ViewModel，这是非常简单易用的方式，MVVM 在人性化方面比前端其它框架好出很多，因为设计一项功能，开发者首先想的是界面怎么体现，加个按钮，还是加个输入框，然后围绕着按钮或输入框，思考有什么动作，比如，点击按钮后下一步做什么。换成 Flux 思考方式，Store 与 View 之间如何交互要多思考一次，还不以 "界面该怎么呈现" 为思考原点，因为 Action 与 Dispatch 的设计促使你先考虑 Store 的数据结构。
+
+如果让 MVVM 再支持 "所见即所得" 的可视化设计，它的易用性将拉开 Flux 更远，加上 Flux 天然的函数式编程倾向，叠加 react-router 等工具，也自然以路由指令、Action命令、状态数据为思考出发点。比如 react-router 强调，以 "路由" 如何设置为功能开发的第一出发点，不像 MVVM 是以交互界面设计为第一出发点。所以，说句实话，React 生态链上的工具比 Vue 难用得多，这也是 React 急需 Shadow Widget 之类工具的理由。
+
+现在我们明确了引入 MVVM 的收益，非常值得做。问题关键是，它如何与 Flux 共存？
+
+首先，Flux 中的 Store 与 Controller View 可以合并，大胆一点，肯定不会死人。以 reflux 现有设计为例，如果一个 React Component 节点不显示到界面，比如 `<noscript>` 节点，或者 comment 注释节点，或者 `style.display='none'` 的 `<div>` 节点，完全胜任用来构造 Store 节点。
+
+其次，由前面总结的 Flux 中 Store 该具备的 3 项特性，与 MVVM 的双向数据绑定需求高度重合，以 Shadow Widget 已实现的功能举例：
+
+1. 双源属性具有事件通知功能，它可以被侦听，修改双源属性的值可以触发事件，刷新 trigger 表达式也能触发事件。
+2. 将 Controller View 与 Store 合二为一，state 数据也合二为一，省去了两者之间同步。
+3. Shadow Widget 的可计算性属性支持 `any, all ,strict` 三种条件同步机制，与 reflux 提供的条件组合等效。比如要求 `Action A` 与 `Action B` 都发生后，才触发事件，脚本表达式用 `"all:"` 前缀指示即可。
+
+当然，这些 Flux 中 Store 的需求是附加在 React Component 之上的，如果 Component 想显示界面（而不是用作纯 Store，把界面隐藏起来），尽管显示好了，无非这样的节点还同时具备 Store 的功能。
+
+改造后 Shadow Widget 的 MVVM 如下图：
+
+<div $=".body.auto1.mvvm"></div>
+
+其中，双合一 `"Store + Controller View"` 是 `"VM"` 或 `"VM + V"`，视该 React Component 需不需在界面显示而定，若同时还用作界面元素的就是 `"VM + V"`。
+
+Flux 要求的 Action 与 Dispatcher 已被各节点的 `duals.attr` 属性代替，其中属性名（`attr`) 与 Action 的命令字（`type`）对等，属性值与 Action 的数据（`Payload`）对等。各个 `duals.attr` 可被自身节点或其它节点侦听，当 `duals.attr` 取值变化时，相应的侦听函数会按事件方式自动被回调。
+
+至于 Model，它最简的形态就是各 View 节点的 `duals.xxx` 属性。遇到复杂的，不妨定义专职的数据服务，用不显示界面的 Controller View 来定义，如上所述，这是 `"VM"`。但当它只处理 `duals.attr` 数据，没有其它功能时，`"VM"` 的角色将退化为 `"M"`。比如 ajax 数据服务（用于从服务侧请求数据，往服务侧保存数据），完全可以用 `style.display='none'` 的 `<div>` 节点来构造，它以 `duals.attr1, duals.attr2` 等接口对外提供数据的读、写、侦听等服务。
+
+值得一提的是：**Shadow Widget 的 MVVM 与 Flux 框架是兼容的，与 Functional Reactive Programming 编程也是兼容的**。上图按 Flux 方式绘图，若要体现 MVVM，这么绘制：
+
+<div $=".body.auto2.mvvm"></div>
+
+## 对照 Vue 的 MVVM 举个例子
+
+一个 Vue 的 MVVM 例子如下。
+
+![Vue MVVM](md/res/D170512-01/vue_mvvm.gif)
+
+对应于 Shadow Widget，界面 View 定义如下：
+
+``` html
+<div $=BodyPanel key='body'>
+  <div $=Panel height='{null}' $for='' dual-data='{['项目1']}'>
+    <div $=P>
+      <span $=Input key='input' type='text' value=''></span>
+      <span $=Button key='btn' $id__='btn_todo'>添加</span>
+    </div>
+    <div $=Ul $for='item in duals.data'>
+      <div $=Li $key='"txt_" + index' $html='item.text'></div>
+    </div>
+  </div>
+</div>
+```
+
+VM 定义如下：
+
+``` js
+idSetter['btn_todo'] = function(value,oldValue) {
+  if (value <= 2) {
+    if (value == 1) {  // init process
+      this.setEvent( {
+        $onClick: function(event) {
+          var inputComp = this.componentOf('//input');
+          var text = inputComp.duals.value.trim();
+          if (text) {
+            var dataComp = this.componentOf(0);
+            dataComp.duals.data = ex.update(dataComp.duals.data, {
+              $push:[{text:text}],
+            });
+            inputComp.duals.value = '';
+          }
+        },
+      });
+    }
+    return;
+  }
+};
+```
+
+Shadow Widget 的 MVVM 与 Vue 相比，更突出从 "界面布局" 出发思考设计，更倾向于函数式编程风格。比如：
+
+1. 在一个 VM 中，Shadow Widget 将 Model 分散在各层多个 React Componet 中，数据服务以 `duals.xxx` 方式提供。而 Vue 集中在一处定义数据。   
+Shadow Widget 先考虑界面如何设计，确定界面元素后，再考虑相关数据绑捆到哪个节点更方便，所以数据服务是分散的，Vue 则提前考虑数据结构如何设计，要集中。所以，这个例子中，用 Vue 时 `data.newTodo` 定义到 Model，用 Shadow Widget 则视作一个过程数据，不必在对外接口体现。
+
+2. 数据分散，处理函数也分散定义，所以上面 Shadow Widget 的事件函数，要用 `this.componentOf()` 动态查找相关节点。Vue 集中定义数据，与数据相关的节点、动作、事件等函数也随之被锁定。这两种方式各有利弊，Vue 方式简单明了，Shadow Widget 更动态、更函数式，使用要复杂些，但应付各种变化自由些，功能更强些，比如各层节点动态增删、改换。
+
+## 函数如何作为数据进行传递
+
+Shadow Widget 要支持界面可视化设计，可视设计的产出是界面元素的叠加物，当这种叠加物含有函数定义时，保存设计成果，或缓存设计结果（用于 undo 与 redo）将很成问题。因为函数定义要附带上下文才有意义，另外，函数定义体（即 JS 脚本）可以是任意字符，混在界面定义中，给结构化的解析设计结果也带来挑战。所以，Shadow Widget 限制可视设计过程中使用函数化数据，设计态的 props 数据传递不能有函数对象。
+
+在 Shadow Widget 中，与 JSX 对等的界面数据化描述格式叫 json-x，因为 JSON 数据不能带 function 定义，在数据的序列化方面与 JSON 接近，所以就叫 json-x 格式了。界面的可视化设计过程中，输出的（或缓存的），就是这个基于 json-x 的数据。
+
+Shadow Widget 借助在 `main[widget_path]` 预登记投影类定义，实现 function 的动态捆绑，还借助 `idSetter[id_string]` 预登记 idSetter 函数，这两者让界面可视化设计时避开了函数对象的传递，设计态下投影定义与 idSetter 函数不被捆绑。
+
+不过在设计态，某些第三方库需要让特定构件捆绑函数对象，比如封装 slides.js 形成直方图、饼图等样板，在可视化设计中，捆绑的函数就要启用，否则可视化交互设计中直方图、饼图等不被绘制。
+
+Shadow Widget 为这类需求提供两种解决方案。其一，使用 `W.$$onLoad` 初始化列表（注意，不是 `W.$onLoad`），该列表中的初始化函数在设计态也被调用，通常用它注册特定厂商的库化 UI 节点。库化 UI 供设计中引用，它自身不介入中间设计成果的保存或缓存，在 `$$onLoad` 初始化函数中可捆绑投影类，或传递 idSetter 函数。
+
+其二，类似 `T.rewgt.DelayTimer` 注册一个自行开发的 WTC 类，然后界面的转义标签就可以用 `<div $=rewgt.DelayTimer>` 引用它。
+
+## 总结
+
+我一直认为，开发语言、编程框架只是人类思维的辅助表达器，人脑观照世界，见山是山，见水是水，人要一个个去认，事物要一件件识别，探究复杂的事物，都是分层拆解的思路。具体到前端开发，客户需求高频变化，在并不纯粹的浏览器方框之中，过分强调纯粹的函数式编程肯定要误人子弟。
+
+见过 React 家族的太多开发者，太多工具陷在追求 "纯正" 的泥淖里，无法自拔，阿弥陀佛！但愿我的观点是正确的。
+
+&nbsp;
+
+---
+
+本文参考资料：
+
+1) 阮一峰：[MVC，MVP 和 MVVM 的图示](http://www.ruanyifeng.com/blog/2015/02/mvcmvp_mvvm)
+
+2) facebook/flux：[Flux Concepts](https://github.com/facebook/flux/tree/master/examples/flux-concepts)
+
+3) fluxxor.com：[What is Flux?](http://fluxxor.com/what-is-flux.html)
+
+4) Andrew Ray：[The ReactJS Controller View Pattern](http://blog.andrewray.me/the-reactjs-controller-view-pattern/)
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=rewgt.DrawPaper key='mvvm' style='{{"zIndex":"-998"}}' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{576}' height='{366}' offset-x='{-214}' offset-y='{-26}' left='{-256}' top='{-180}' def-id='_1495025366'>
+    <div $=rewgt.SvgPanel key='auto2' style='{{"strokeColor":"#888","fillColor":"rgba(255,170,212,0.60)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{312}' top='{53}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto10",-1,"auto8"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>duals.attr = data</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto4' style='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"69px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0nI2VlZScgc3Ryb2tlLXdpZHRoPSczJyBzdHJva2UtZGFzaGFycmF5PScnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{312}' top='{144}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto16",-1,"auto7"],["auto21",-1,"auto2"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>Store +   
+Controller View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto5' style='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"144px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0nI2VlZScgc3Ryb2tlLXdpZHRoPSczJyBzdHJva2UtZGFzaGFycmF5PScnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{313}' top='{221}' width='{144}' height='{56}' svg.cfg='{[0,[null,[]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>Store +   
+Controller View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto7' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"214px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiKDIxMiwgMjU1LCAxNzApJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9Jyc+PHJlY3QgeD0nMCcgeT0nMCcgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgcng9JzUnIHJ5PSc1Jy8+PC9nPjwvc3ZnPg==\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{570}' top='{142}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto25",-1,"auto24"],["auto33",-1,"auto31"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto8' style='{{"strokeColor":"#666","fillColor":"#666"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{214}' top='{132}' width='{52}' height='{84}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto12",-1,"auto4"],["auto14",-1,"auto5"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto16' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{424}' top='{138}' width='{169}' height='{65}' svg.cfg='{[-1,["",0,0,2,0,0,57,0,113,0],"lib/res/arrows.svg.json"]}' data-from='auto4'></div>
+    <div $=rewgt.SvgPanel key='auto12' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{207}' top='{143}' width='{129}' height='{65}' svg.cfg='{[-1,["",0,0,2,0,0,37,0,73,0],"lib/res/arrows.svg.json"]}' data-from='auto8'></div>
+    <div $=rewgt.SvgPanel key='auto22' style='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{225}' top='{142}' width='{88}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>listen</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto23' style='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"217px","top":"141px","width":"88px","height":"40px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iNDAiIHZpZXdQb3J0PSIwIDAgMTAwIDEwMCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0ncmdiYSgwLDAsMCwwKScgZmlsbD0ncmdiYSgwLDAsMCwwKScgc3Ryb2tlLXdpZHRoPSczJyBzdHJva2UtZGFzaGFycmF5PScnPjxyZWN0IHg9JzAlJyB5PScwJScgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgLz48L2c+PC9zdmc+\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{224}' top='{209}' width='{88}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>listen</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto24' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"570px","top":"142px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiYSgwLDEyNywyNTUsMC41NSknIHN0cm9rZS13aWR0aD0nMycgc3Ryb2tlLWRhc2hhcnJheT0nJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyByeD0nNScgcnk9JzUnLz48L2c+PC9zdmc+\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{570}' top='{225}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto28",-1,"auto26"],["auto39",-1,"auto36"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto25' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{610}' top='{166}' width='{65}' height='{85}' svg.cfg='{[-1,["",0,0,2,0,0,0,15,0,29],"lib/res/arrows.svg.json"]}' data-from='auto7'></div>
+    <div $=rewgt.SvgPanel key='auto26' style='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{704}' top='{38}' width='{60}' height='{60}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto30",-1,"auto2"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto31' style='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{610}' top='{58}' width='{60}' height='{60}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto35",-1,"auto2"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto33' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{621}' top='{74}' width='{41}' height='{88}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,1,0,53,0,27,0,0],"lib/res/arrows.svg.json"]}' data-from='auto7'></div>
+    <div $=rewgt.SvgPanel key='auto28' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{694}' top='{52}' width='{61}' height='{221}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,1,0,186,21,186,21,0],"lib/res/arrows.svg.json"]}' data-from='auto24'></div>
+    <div $=rewgt.SvgPanel key='auto36' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"570px","top":"225px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiYSgwLDEyNywyNTUsMC41NSknIHN0cm9rZS13aWR0aD0nMycgc3Ryb2tlLWRhc2hhcnJheT0ndW5kZWZpbmVkJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyByeD0nNScgcnk9JzUnLz48L2c+PC9zdmc+\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{572}' top='{308}' width='{144}' height='{56}' svg.cfg='{[0,[null,0],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto39' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{612}' top='{249}' width='{65}' height='{83}' svg.cfg='{[-1,["",0,0,2,0,0,0,14,0,27],"lib/res/arrows.svg.json"]}' data-from='auto24'></div>
+    <div $=rewgt.SvgPanel key='auto21' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{365}' top='{93}' width='{41}' height='{71}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,0,36,0,18,0,0],"lib/res/arrows.svg.json"]}' data-from='auto4'></div>
+    <div $=rewgt.SvgPanel key='auto30' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{442}' top='{48}' width='{312}' height='{41}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,277,0,139,0,0,0],"lib/res/arrows.svg.json"]}' data-from='auto26'></div>
+    <div $=rewgt.SvgPanel key='auto35' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{442}' top='{68}' width='{218}' height='{41}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,183,0,92,0,0,0],"lib/res/arrows.svg.json"]}' data-from='auto31'></div>
+    <div $=rewgt.SvgPanel key='auto10' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{208}' top='{48}' width='{137}' height='{150}' svg.cfg='{[-1,["",0,0,1,73,0,0,0,0,94],"lib/res/arrows.svg.json"]}' data-from='auto2'></div>
+    <div $=rewgt.SvgPanel key='auto14' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{208}' top='{142}' width='{129}' height='{140}' svg.cfg='{[-1,["",0,0,2,0,0,0,76,73,76],"lib/res/arrows.svg.json"]}' data-from='auto8'></div>
+  </div>
+</div>
+<div $=ScenePage key='auto2' no-show='1'>
+  <div $=rewgt.DrawPaper key='mvvm' style='{{"zIndex":"-998"}}' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{576}' height='{366}' offset-x='{-210}' offset-y='{-39}' left='{-256}' top='{-180}' def-id='_1495025366'>
+    <div $=rewgt.SvgPanel key='auto2' style='{{"strokeColor":"#888","fillColor":"rgba(255,170,212,0.60)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{312}' top='{53}' width='{144}' height='{56}' svg.cfg='{[0,["10,5",[["auto10",-1,"auto8"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>Action</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto4' style='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"69px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0nI2VlZScgc3Ryb2tlLXdpZHRoPSczJyBzdHJva2UtZGFzaGFycmF5PScnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{312}' top='{144}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto16",-1,"auto7"],["auto21",-1,"auto2"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>ViewModel + View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto5' style='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"144px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0nI2VlZScgc3Ryb2tlLXdpZHRoPSczJyBzdHJva2UtZGFzaGFycmF5PScnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{313}' top='{221}' width='{144}' height='{56}' svg.cfg='{[0,[null,[]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>ViewModel</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto7' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"312px","top":"214px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiKDIxMiwgMjU1LCAxNzApJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9Jyc+PHJlY3QgeD0nMCcgeT0nMCcgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgcng9JzUnIHJ5PSc1Jy8+PC9nPjwvc3ZnPg==\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{570}' top='{142}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto25",-1,"auto24"],["auto33",-1,"auto31"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto8' style='{{"strokeColor":"#666","fillColor":"#666"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{214}' top='{132}' width='{52}' height='{84}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto12",-1,"auto4"],["auto14",-1,"auto5"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto16' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{424}' top='{138}' width='{169}' height='{65}' svg.cfg='{[-1,["",0,0,2,0,0,57,0,113,0],"lib/res/arrows.svg.json"]}' data-from='auto4'></div>
+    <div $=rewgt.SvgPanel key='auto12' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{207}' top='{143}' width='{129}' height='{65}' svg.cfg='{[-1,["",0,0,2,0,0,37,0,73,0],"lib/res/arrows.svg.json"]}' data-from='auto8'></div>
+    <div $=rewgt.SvgPanel key='auto24' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"570px","top":"142px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiYSgwLDEyNywyNTUsMC41NSknIHN0cm9rZS13aWR0aD0nMycgc3Ryb2tlLWRhc2hhcnJheT0nJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyByeD0nNScgcnk9JzUnLz48L2c+PC9zdmc+\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{570}' top='{225}' width='{144}' height='{56}' svg.cfg='{[0,[null,[["auto28",-1,"auto26"],["auto39",-1,"auto36"]]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto25' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{610}' top='{166}' width='{65}' height='{85}' svg.cfg='{[-1,["",0,0,2,0,0,0,15,0,29],"lib/res/arrows.svg.json"]}' data-from='auto7'></div>
+    <div $=rewgt.SvgPanel key='auto26' style='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{704}' top='{38}' width='{60}' height='{60}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto30",-1,"auto2"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto31' style='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{610}' top='{58}' width='{60}' height='{60}' stroke='{1}' data-zero='1' svg.cfg='{[0,[null,[["auto35",-1,"auto2"]]],"lib/res/point_node.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto33' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{621}' top='{74}' width='{41}' height='{88}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,1,0,53,0,27,0,0],"lib/res/arrows.svg.json"]}' data-from='auto7'></div>
+    <div $=rewgt.SvgPanel key='auto28' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{694}' top='{52}' width='{61}' height='{221}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,1,0,186,21,186,21,0],"lib/res/arrows.svg.json"]}' data-from='auto24'></div>
+    <div $=rewgt.SvgPanel key='auto36' style='{{"strokeColor":"#888","fillColor":"rgba(0,127,255,0.55)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"570px","top":"225px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiYSgwLDEyNywyNTUsMC41NSknIHN0cm9rZS13aWR0aD0nMycgc3Ryb2tlLWRhc2hhcnJheT0ndW5kZWZpbmVkJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyByeD0nNScgcnk9JzUnLz48L2c+PC9zdmc+\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{572}' top='{308}' width='{144}' height='{56}' svg.cfg='{[0,[null,0],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>View</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto39' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{612}' top='{249}' width='{65}' height='{83}' svg.cfg='{[-1,["",0,0,2,0,0,0,14,0,27],"lib/res/arrows.svg.json"]}' data-from='auto24'></div>
+    <div $=rewgt.SvgPanel key='auto21' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{365}' top='{93}' width='{41}' height='{71}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,0,36,0,18,0,0],"lib/res/arrows.svg.json"]}' data-from='auto4'></div>
+    <div $=rewgt.SvgPanel key='auto30' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{442}' top='{48}' width='{312}' height='{41}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,277,0,139,0,0,0],"lib/res/arrows.svg.json"]}' data-from='auto26'></div>
+    <div $=rewgt.SvgPanel key='auto35' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{442}' top='{68}' width='{218}' height='{41}' stroke='{2}' svg.cfg='{[-1,["5,5",0,0,2,183,0,92,0,0,0],"lib/res/arrows.svg.json"]}' data-from='auto31'></div>
+    <div $=rewgt.SvgPanel key='auto10' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{208}' top='{48}' width='{137}' height='{150}' svg.cfg='{[-1,["",0,0,1,73,0,0,0,0,94],"lib/res/arrows.svg.json"]}' data-from='auto2'></div>
+    <div $=rewgt.SvgPanel key='auto14' style='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(127, 127, 127)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{208}' top='{142}' width='{129}' height='{140}' svg.cfg='{[-1,["",0,0,2,0,0,0,76,73,76],"lib/res/arrows.svg.json"]}' data-from='auto8'></div>
+    <div $=rewgt.SvgPanel key='auto41' style='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"313px","top":"221px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiKDIxMiwgMjU1LCAxNzApJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9J251bGwnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{311}' top='{314}' width='{144}' height='{56}' svg.cfg='{[0,[null,[]],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>Model</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto47' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{347}' top='{251}' width='{65}' height='{88}' style='{{"strokeColor":"#666","fillColor":"#666"}}' svg.cfg='{[-1,["",0,2,2,0,5.5,0,0],"lib/res/arrows.svg.json"]}'></div>
+  </div>
+</div>

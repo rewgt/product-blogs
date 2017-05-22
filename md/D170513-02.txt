@@ -1,0 +1,184 @@
+Shadow Widget 非正经入门（之六）
+------------
+
+&nbsp;
+
+本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇讲解 Markdown 在 Shadow Widget 中的应用。
+
+&nbsp;
+
+## Markdown 在 Shadow Widget 中的应用
+
+Shadow Widget 中 Markdown 采用 John Gruber 的 [Markdown 语法规则](http://daringfireball.net/projects/markdown/syntax)。由于 markdown 支持 `<tag>` 带标签的书写方式，我们就不必外寻特别的扩展方法，需要功能扩展的地方，都用 html 标签的形式解决。
+
+Shadow Widget 不只用 markdown 表达文本段落，重要的是，它还用 markdown 实施界面编程。为达到这个目标，我们先对 John Gruber 的 markdown 语法做一点优化。
+
+## 优化 markdown 语法
+
+常规 markdown 语法都支持用 `>` 表达当前段落缩进一级。比如：
+
+```
+ > 这一段缩进一个级别。
+
+ > > 这一段缩进两个级别。
+```
+
+这样的 markdown 文本在独立的 `*.txt` 或 `*.md` 文件中书写没问题，但如果挪到 html 网页文件中，字母 `'>'` 会保存为转义格式 `"&gt;"`。所以，我们分析 markdown 语法时，要增加对 `"&gt;"` 表示缩进的兼容处理。
+
+从更严格角度去看，字母 `'>'` 规则算得上一个 Bug，因为 markdown 要内置支持 `<tag>` 标签，就不该将 `'<'` 与 `'>'` 用作特殊语义标记，否则有损严谨性。
+
+Shadow Widget 把转义标签也纳入到 markdown 文本内容中，需要以更严谨的方式表达缩进一级，我们引用 `"::"` 表示法，拿它替换 `'>'`。比如：
+
+```
+ :: 这一段缩进一个级别。
+
+ :: :: 这一段缩进两个级别。
+```
+
+## 把转义标签嵌到 markdown 文本中
+
+Markdown 语法支持 `<tag>` 标签，转义标签自然能用 markdown 书写，比如：
+
+``` html
+<pre $=MarkedDiv key='marked' width='{0.9999}'>### 嵌入描述界面的转义标签
+
+<div $=P key='p' width='{0.9999}'>
+  <span $=Button key='test1'>test 1</span>
+  <span $=Button key='test2'>test 2</span>
+</div>
+
+本例在 markdown 文本定义了 **两个按钮** 界面。
+
+### 嵌入一个引用
+
+<div key='pie' $='.body.auto1.pie_chart'></div>
+
+在外部定义的构件（`.body.auto1.pie_chart`）将插入到 markdown 正文中使用。
+</pre>
+```
+
+使用 markdown 的构件是 Div 类构件，在 markdown 嵌入转义标签的首层节点要求是 "非行内构件"，Panel 类、Div 类、P 类均可。嵌入的由转义标签描述的界面，表现为一种 "段落"，与 markdown 描述的各段落一起按顺序排列。上面例子生成的节点树如下：
+
+```
+    marked            // MarkedDiv
+    +-- markdown paragraph
+    +-- p             // P
+    |   +-- test1     // Button
+    |   +-- test2     // Button
+    +-- markdown paragraph
+    +-- pie
+    +-- markdown paragraph
+```
+
+在 markdown 中嵌入转义标签，使 markdown 的表达能力变得异常强大，Shadow Widget 编程能表达的界面都能嵌进来。嵌入的转义标签甚至还可是 markdown 构件，层层嵌套，深度没有限制。
+
+## 两个 markdown 基础类
+
+Shadow Widget 内置提供 `T.MarkedDiv` 与 `T.MarkedTable` 两个最基础的 WTC 类定义，所有凡支持 markdown 的扩展 WTC 类都应从这两个基类开始继承。
+
+在转义标签描述一个 markdown 节点，建议用 `<pre>` 标签，`<div>` 也管用，但用 `<pre>` 可以让 markdown 文本少些特殊字符被转义。`<pre>` 标签的内容，遇到 `"<"` 或 `">"` 仍会转义，但用 `<div>` 表达时，如果内容有换行或嵌套的标签，会有麻烦。
+
+所以，下面两种转义标签，我们选择第一种优于第二种：
+
+``` html
+<pre $=MarkedDiv>Hello, world</pre>
+<div $=MarkedDiv>Hello, world</div>
+```
+
+MarkedDiv 常用来表达一维数据定义，MarkedTable 表达二维数据，行是一维，列是另一维。这两种构件都定义有 `duals.nodes` 属性，对于前者，用 `comp.duals.nodes[n]` 的方式提取由转义标签定义的各节点，对于后者，用 `comp.duals.nodes[row][col]` 提取第 row 行 col 列的经转义标签定义的节点。
+
+## markdown 兼顾了机器可读与人类可读的需求
+
+Markdown 被设计出来，主要用来简化网页内容编辑的，许多用户（尤其是作家）并不熟悉 html 标签，让他使用 `<p>` 或 `<table>` 撰写文章会很困难，有了 Markdown 语法，普通人花 10 分钟学一下，就能编写具有漂亮界面的网文了。
+
+Shadow Widget 继承 markdown 这个优势，同时，在不引入太复杂操作前提下，努力提升界面表现力。从原理上讲，markdown 可嵌入大部分 html 标签，如 `<div>, <p>, <table>` 等，表现复杂用户界面不是问题，问题是复杂的标签只有前端开发人员会用。现在 Shadow Widget 把界面设计可视化了，未经编程训练的普通人也能通过拖入样板创建组件，再修改组件属性来设计界面，所以，Shadow Widget 这项改进具有重大现实意义。
+
+在 markdown 文本中嵌入特定界面，比如下面的直方统计图：
+
+<div $=".body.auto1.chart"></div>
+
+典型操作步骤如下：
+
+1. 在隐藏的胶片页（设计态仍可见）中，拖入直方图样板，创建一个组件，然后选中该组件，在 property 页修改属性，或点击浮动按钮配置特定属性。
+
+2. 为这个组件指定 key 值，然后点击 ![Copy as linker](md/res/D170513-02/copy2.png) 浮动按钮，拷贝对它的 "引用描述"。
+
+3. 在 markdown 内容编辑器中粘帖 "引用描述" 文本即可。
+
+上图真是按这几个步骤，把直方图嵌入到 markdown 文本实现展示的。
+
+Markdown 在 Shadow Widget 中应用广泛，就像 markdown 能简化文章写作一下，它一样简化编程中的界面设计。其表达形式对机器可读，同时，对开发人员也是易读易理解的，对它做修改直接改文本，很方便。
+
+## 一个复杂些的例子
+
+比如下面组件，点击左侧列表中的项目，右侧将展示相应页的内容（注：下面不是图片，用鼠标点击看看）。
+
+<div $=".body.auto1.idx_table"></div>
+
+它的实现原理大致是，用如下 MarkedDiv 定义 `item A/B/C` 三项内容：
+
+``` html
+<pre $=MarkedDiv key="mark">
+<pre $=MarkedDiv title="item A">Page A
+</pre>
+
+<pre $=MarkedDiv title="item B">Page B
+</pre>
+
+<pre $=MarkedDiv title="item C">Page C
+</pre>
+</pre>
+```
+
+然后用 `$for="item in duals('./mark').nodes"` 循环语句，取这 3 个 element 的 `props.title` 值显示到左侧列表，用 NavPanel 与 GroundPanel 构造可选导航页，各内容页同样用 `$for="item in duals('./mark').nodes"` 取得。
+
+如果把这种界面做成样板，用户使用时，拖进来就创建一个组件，然后选中 key 为 `mark` 的 MarkedDiv 构件，点击 "edit markdown" 浮动按钮，然后在弹出的 markdown 编辑器中修改文本。这样，我们能很方便的创建同样式导航页界面。
+
+&nbsp;
+
+（非正经入门系列的博客至此完结）
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=P key='chart' width='{300}' height='{260}' data-dsn-sizes='bar1' left='{67}' top='{-163}' data-group.optid='pinp/blogs/steps'>
+    <span $=".pinp.charts.bar" key='bar1' style='{{"width":"100%","height":"100%"}}'>labels=One,Two,Three,Four,Five,Six,Seven
+title.text=
+legend.display=false
+scales.yAxes.0.gridLines.display=true
+scales.xAxes.0.gridLines.display=false
+scales.yAxes.0.ticks.min=0
+---
+
+label=Item
+borderWidth=1
+backgroundColor=
+borderColor=
+65 59 80 81 56 55 40
+</span>
+  </div>
+  <div $=NavPanel key='idx_table' klass='small-default-large p1-p2-p3-p0 visible-auto-hidden rb-rt-lt-no_shadow-lb col-reverse' width='{460}' height='{200}' $for='' left='{-413}' top='{-122}' data-group.optid='rewgt/shadow-slide/step1' data-prepost='5-3-15-3-1'>
+    <pre $=MarkedDiv key='mark' no-show='1' klass='hidden-visible-auto' width='{0.9999}' min-height='{0}' height='{6}' $style='{backgroundColor:ex.__design__()?&#39;#eee&#39;:&#39;&#39;}'><pre $="MarkedDiv" title="item A">Page A
+</pre>
+
+<pre $="MarkedDiv" title="item B">Page B
+</pre>
+
+<pre $="MarkedDiv" title="item C">Page C
+</pre>
+</pre>
+    <div $=NavPanel style='{{"borderColor":"#eee"}}' height='{-1}' border-width='{1}'>
+      <div $=Panel style='{{"backgroundColor":"#f4f4f4"}}' klass='nowrap-default-wrap_reverse' width='{100}' padding='{8}'>
+        <div $=P style='{{"cursor":"default"}}' width='{0.9999}' margin='{0}' klass='small-default-large align_center-right-default self_center-start-end-stretch-default p2-p3-p0-p1 focus_checked' $for='item in duals(&#39;./mark&#39;).nodes'>
+          <span $=OptSpan $data-checked='index==0?&#39;1&#39;:&#39;&#39;' $html='item[1].props.title+&#39;&#39;' $key='item[0]' data-checked=''></span>
+          <span $=Br $key='&#39;_&#39;+index'></span>
+        </div>
+      </div>
+      <div $=SplitDiv style='{{"borderColor":"#eee","backgroundColor":"transparent"}}' width='{6}' border-width='{[0,0,0,1]}' height='{0.9999}'></div>
+      <div $=NavPanel width='{-1}' $for='item in duals(&#39;./mark&#39;).nodes'>
+        <div $=GroundPanel height='{0.9999}' $key='item[0]' $children='item[1]' width='{0.9999}' min-height='{20}' class-name='rewgt-panel'></div>
+      </div>
+    </div>
+  </div>
+</div>

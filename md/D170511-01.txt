@@ -1,0 +1,157 @@
+Shadow Widget 非正经入门（之二）
+------------
+
+&nbsp;
+
+本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇讲解转义标签、json-x、投影定义，这几项与 "如何分离界面设计" 有关。
+
+&nbsp;
+
+## 找一个 JSX 替代品
+
+如上一篇 ["非正经入门（之一）"](http://localhost:3000/product-blogs/index.html?doc=D170509-02.txt) 所述，Shadow Widget 要克服 "JSX浆糊" 的不利影响，要找一个 JSX 替代品。
+
+比如下面 JSX 表达方式：
+
+``` js
+  return <h1 id={user.id}>Dear {user.name}, {welcomeMsg(user)}</h1>;
+```
+
+等效于：
+
+``` js
+  return React.createElement( H1, {id:user.id},
+    "Dear ", user.name, ", ", welcomeMsg(user)
+  );
+```
+
+创建一个 Element，需传递三项信息：`ReactClass`，`props`，`children` 列表。我们把这三项改造成一个 array 数组格式：
+
+``` js
+  [ [ReactClass, props],
+    child1, child2...
+  ]
+```
+
+其中，`child1, child2` 是子节点定义，格式是 string 字串，或 array 数组。这种以 array 数组表达一个 Element 节点的格式叫 json-x 描述方式，与 JSX 完全等效。
+
+## 转义标签
+
+为了方便在 html 网页文件中描述用户界面，我们定义 "转义标签" 的表达方式，如下：
+
+``` html
+  <div $=Panel>
+    <div $=P>
+      <span $=Span>Referece:</span>
+      <span $=A src='http://example.com'>example.com</span>
+    </div>
+  </div>
+```
+
+转义标签无非将所有 HTML 标签划分为行内标签与 block 标签，前者用 `<span>` 表达，后者用 `<div>` 表达，各标签中用 `$=XXX` 属性定义的方式指示实际使用哪个 React Class，如 `$=Panel` 表示用 `T.Panel`，`$=P` 表示用 `T.P`。所有经 Shadow Widget 扩展出的构件模板类（也称 WTC，Widget Template Class）都应注册到 `T` 之下，这样，网页刚打开时，由转义标签中 `$=XXX` 指示，能找到相应的 React class，实现正常挂载。
+
+在转义标签中定义的属性，比如上面的 `src='http://example.com'`，在挂载前先整理出 props 表（如 `{src:"http://example.com"}`），而转义标签的上下级节点的从属关系，以及同级节点之间的前后关系，指明了 json-x 数据中的 children 定义。所以，`ReactClass`，`props`，`children` 三项信息都有了，转义标签能转换成 json-x，所以它与 JSX 也是等效的。
+
+转义标签具有良好可读性，所以，它在 `*.html` 文件中可以直接书写。另外，这种格式对搜索引擎也友好，若依赖 JSX 定义界面，搜索引擎无法分析 html 文件中定义了什么信息。
+
+## 第一眼是妖孽，多半就是妖孽
+
+React 支持服务侧渲染，这个特性似乎鼓励了其生态链上若干工具额外拓展服务侧功能。比如 react-router 中 Router 组件的 history 属性，既可以是 `browserHistory`，也可以是 `hashHistory`。对于前者，客户侧路由（即 URL 路径）决定服务侧如何实现，将两侧的设计捆绑起来的，后者 `hashHistory`（即 `#/some/path`）完全在客户侧自主决定，与服务侧无关。很显然，后一方式优于前者，前者违背了软件设计的 "关注点分离"（Separation of concerns, SOC）原则，并且在实践上，服务侧只有用 webpack-dev-server （加 `--history-api-fallback` 参数）才能玩得好，不只绑架用 JS 语言，而且绑架用特定工具。要命的是，react-router 官方居然推荐大家首选 `browserHistory`。
+
+这个 `browserHistory` 就是充满妖气的特性，怪里怪气，表面看起来有用，实则禁不起推敲。React 的 `propTypes` 也很妖，官方让它存活了这么久，最终决定在 `v15.5` 之后弃用，连 `context` 也不建议用了，`context` 本是 React 为缓解跨节点数据共享不便，弄出的不伦不类的东西。
+
+某种程度上 React 的服务侧渲染也多少沾点 "妖气"，有些人仅为了解决 SEO 优化用它，仔细想想有点本末倒置了。它的初始需求源于 google 之类的搜索引擎不认 JSX，因为 JSX 服务于编程，编程脚本原不该由搜索引擎关注的，该关注的只是一些静态文本。处理静态文本没必要拉上 React 一家子吧？但事实却是，我们非得套用一个客户侧编程风格，用 JS 开发的服务侧渲染工具，你说妖不妖？
+
+## 分离界面设计
+
+在分离界面之前，我们还需建立路径索引机制。
+
+Shadow Widget 通过一颗树（Widget 树，R 树）管理由它定义的界面，各节点都有 key 值作标识，既可以显示指定一个 key 值，也可以缺省，缺省时由系统自动生成一个数字来表示。这果颗树的根节点是 `".body"`，如果根节点下有一个 key 值为 `"toolbar"` 的 Panel 节点，它的绝对路径就是 `".body.toolbar"`。
+
+有了路径索引机制，我们能将界面描述与它的行为定义分离开了。比如这么定义界面：
+
+``` html
+<div $=BodyPanel key='body'>
+  <div $=Panel key='toolbar'>
+    <div $=P key='p'>
+      <span $=Button key='btn1'>Test</span>
+    </div>
+  </div>
+</div>
+```
+
+这么定义 `Test` 按钮的行为：
+
+``` js
+main['.body.toolbar.p.btn1'] = {
+  $onClick: function(event) {
+    alert('clicked');
+  },
+};
+```
+
+界面的转义标签在 `*.html` 文件中书写，界面元素的行为定义在 `*.js` 文件进行，如此，界面设计分离出来了，界面描述与相关元素的行为定义通过该元素的绝对路径实现关联。如上例，用 javascript 编写某元素的行为定义，也称 "投影定义"。
+
+## 表达复杂的 props 数据
+
+json-x 数据与转义标签都与 JSX 对等，但传递 `props` 数据有若干限制，比如转义标签不支持传递函数对象，json-x 可传函数对象，但也不鼓励（主要因为不规范）。函数定义应在投影类中定义，就像上面举例的 `$onClick` 函数，不通过转义标签的属性来传递，只在转义标签挂载时，到 `main` 下找到相应投影定义，然后捆绑相应的函数定义。
+
+除了函数，描述复杂的 props 数据时，json-x 的表达能力是完整的，因为它本来就是 javascript 数据，但转义标签受 html 标签格式的影响，要改用 JSON 字串来表示，比如：
+
+``` html
+  <div $=Panel title='tool bar' width='{400}'>
+  </div>
+```
+
+属性值用 `'{'` 与 `'}'` 括起来，表示它是 JSON 字串，用 `JSON.parse` 前要先删掉首尾两个花括号，如上面 `width` 值为 `JSON.parse('400')`。另外，对于 string 类型的属性值，可以直接传递（避开字串首尾是花括号的情形），不必按 JSON 字串的方式，如上面 `title` 属性。
+
+## idSetter 函数
+
+实施界面与底层分离除了投影定义，还有一种指定 idSetter 函数的方式，若简单去理解，该方式是投影定义的一个变种，同样实现特定界面元素的行为定义的动态绑捆。
+
+举例来说，界面这么描述：
+
+``` html
+<div $=BodyPanel key='body'>
+  <div $=Panel key='toolbar'>
+    <div $=P>
+      <span $=Button $id__='btn1'>Test</span>
+    </div>
+  </div>
+</div>
+```
+
+Javascript 这么定义：
+
+``` js
+idSetter['btn1'] = function(value,oldValue) {
+  if (value <= 2) {
+    if (value == 1) {      // init process
+      this.setEvent( {
+        $onClick: function(event) {
+          alert('clicked');
+        },
+      });
+      // ...
+    }
+    else if (value == 2) { // did mount
+      // ...
+    }
+    else if (value == 0) { // will unmount
+      // ...
+    }
+    return;
+  }
+
+  // render process ...
+};
+```
+
+这种书写方式与上面投影定义的方式是等效的，投影类中该在 `getInitialState()` 中书写的代码，要挪到 idSetter 函数的 `if (value == 1)` 分支中，该在 `componentDidMount()` 中书写的代码移到 `if (value == 2)` 的分支中，该在 `componentWillUnmount()` 中书写的代码移到 `if (value == 0)` 的分支中。
+
+使用 idSetter 函数的优点是，相应界面节点的绝对路径不必完整定义，即路径上各段不必显式给出 key 值，系统由 `$id__='xxx'` 属性值，自动找出 idSetter 函数。另一个优点是，编程风格更加函数式。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key="auto0"></div>
+<div $=ScenePage key="auto1" no-show="1"></div>
