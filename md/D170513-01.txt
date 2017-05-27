@@ -24,7 +24,7 @@ Angular 也有类似 `v-for, v-if, v-else` 等控制指令，这些对于快速�
 界面设计中常需要照着一个构件的样式，复制出多个，比如下面 `btn2` 按钮，保持与 `btn1` 一致的样式：
 
 ``` html
-  <span $=Button style='{{"background":"#eee","borderColor":"#ccc"}}' 
+  <span $=Button sty__='{{"background":"#eee","borderColor":"#ccc"}}' 
         key='btn1'>Test 1</span>
   <span $='//btn1' key='btn2'>Test 2</span>
 ```
@@ -36,7 +36,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 控制指令是可计算属性中的一种，可计算属性是一种通过脚本表达式，借助 MJI (Mini Javascript Interpreter) 解释器动态解析计算的属性。比如：
 
 ``` html
-<span $=Button style='{{"background":"#eee","borderColor":"#ccc"}}' 
+<span $=Button sty__='{{"background":"#eee","borderColor":"#ccc"}}' 
       key='btn1'>Test 1</span>
 <span $='//btn1' key='btn2' data='{{"desc":"Test 2"}}' 
       $html="duals.data.desc"></span>
