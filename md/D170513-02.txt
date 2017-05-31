@@ -142,8 +142,8 @@ Markdown 在 Shadow Widget 中应用广泛，就像 markdown 能简化文章写�
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
 <div $=ScenePage key='auto0'></div>
 <div $=ScenePage key='auto1' no-show='1'>
-  <div $=P key='chart' width='{300}' height='{260}' data-dsn-sizes='bar1' left='{67}' top='{-163}' data-group.optid='pinp/blogs/steps'>
-    <span $=".pinp.charts.bar" key='bar1' sty__='{{"width":"100%","height":"100%"}}'>labels=One,Two,Three,Four,Five,Six,Seven
+  <div $=P key='chart' width='{300}' height='{260}' $for='' data-dsn-sizes='bar1' left='{67}' top='{-163}' data-group.optid='pinp/blogs/step1'>
+    <span $=".pinp.charts.bar" key='bar1' $style='{width:duals(-1).width+"px",height:duals(-1).height+"px"}'>labels=One,Two,Three,Four,Five,Six,Seven
 title.text=
 legend.display=false
 scales.yAxes.0.gridLines.display=true
