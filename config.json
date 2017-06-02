@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_modify": 1495436740805,
+  "last_modify": 1496371563428,
   "user_name": "rewgt",
   "imported_repos": [
     [
@@ -66,7 +66,7 @@
       "tag": ".拼文产品",
       "markdown": true,
       "title": "Shadow Widget 非正经入门（之一）",
-      "modify_at": 1494893064640,
+      "modify_at": 1496371563428,
       "create_at": 1494316226732,
       "desc": "本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点，既作为用户手册的补充，也从更本质角度帮助大家理解 Shadow Widget 为什么这样设计，相关概念是怎么提出的，正确的使用姿势等。"
     },

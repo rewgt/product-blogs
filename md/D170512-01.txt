@@ -123,6 +123,8 @@ Flux 要求的 Action 与 Dispatcher 已被各节点的 `duals.attr` 属性代�
 
 <div $=".body.auto2.mvvm"></div>
 
+上图中，区分 View 与 ViewModel 的主要依据是：一个 Component 节点是否纳入编程，若纳入编程（定义投影定义，或 idSetter 函数）应视作 ViewModel，否则应视作 View，即使这个 View 使用一些 `trigger, $for, $if` 等控制指令也如此。
+
 ## 对照 Vue 的 MVVM 举个例子
 
 一个 Vue 的 MVVM 例子如下。
