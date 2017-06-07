@@ -1,0 +1,184 @@
+介绍一项让 React 可以与 Vue 抗衡的技术
+----------
+
+&nbsp;
+
+好吧，我承认我是标题党。React 明明如日中天，把它与 Vue 倒过来，给 Vue 加点东西或可与 React 抗衡。不过，这两年 Vue 干的正是这事，不断加东西，不断优化，按它现有发展速度超越 React 或在情理之中。如果我有一项技术，能让 React 克服短板、维持长板，Vue 再怎么追都赶不上呢？
+
+这项技术就是 Shadow Widget，开源的，[入口在这里（github/rewgt）](https://github.com/rewgt/shadow-server)。
+
+&nbsp;
+
+## 1. 若无来处便剩归途
+
+前些天读过一篇文章，某专家推荐新手入门人工智能最便捷的途径，不是仿 AlphaGo 开发个程序，而是找到十年前、二十年前人工智能领域关键的几篇论文，把经典文章吃透，然后再去编程。知道了每项技术怎么来的，解决了什么问题，又引发了什么新问题，把一步步演化过程梳理清楚，就能更清晰的把握下一步工作重点与发展方向。
+
+反推一下 Windows 的来处吧，从 Win3.1、3.2，Win95、98、NT 等，一路叠代到现在的 Window10，如果你是比尔.盖兹，会不会觉得砍掉一半版本 Windows 将发展更好？尤其近十年推出那么多残次品，在 XP 之后，只有 Win7 与 Win10 产生市场价值。这家公司纯粹为推产品而推产品，忘记为什么做产品了，在 IE 产品线这点表现更明显。
+
+![fuck id](md/res/D170602-01/fuck_ie.jpg)
+
+在 IE6 之后，大版本有十数个，只有最近推的 Edge 才回归正常（等后人总结历史，无疑会把 IE6 与 Edge 之间的所有 IE 都称为垃圾）。对前端开发人员而言，他面对的浏览器就两类，一类叫 IE，另一类叫其它，MS 自撸了这么多年，才忽然发现跟他身后一起撸的小弟一个都没了，整整齐齐排到另一条队列，而且合伙把自己落下老远。于是收起老大心态，老老实实做一款**“不隔路”**的，叫 Edge 的产品。IE 产品团队未必全都低能，但产品经理绝对例外，从根子上他就没想明白开发这款产品给谁用，怎么用，没了初心，就剩末路了，当所有前端开者都心生厌恶乃至鄙视时，再强势的市场地位也是白搭。
+
+那么，现在前端开发的初心是什么？是由 DOM 描述器叠加 JS 控制吗？显然不是，早期的网页很简单，前端开发的任务也很纯粹，用 `"html + CSS"` 描述界面节点，再用 JS 搞点交互控制，就够用了。现在情况有变，**前端开发应归类到完整的、具备完全能力的 GUI 开发**。上世纪末，我们只把类似 Delphi、MFC、WxWidget 之类的开发称为界面开发，前端实施的是网页开发（相关工具并不叫作 GUI 工具），网页能力与常规 GUI 差出一大截，为了弥补能力缺失，于是有出各种插件技术发展出来，比如借助 java、ActionScript 工具等补上短板。现在，有了 HTML5、CSS3，不借助插件的网页表现力与平台原生的 GUI 差距不大了，网站开发更适合看作 GUI 开发，加上移动端设备兴起，java 与 ActionScript 不再有效，尤其出现 Angular、React、Vue 等新兴框架后，大型、复杂的前端开发也能轻松应对了，**“网页开发” 应回归到常规的 “GUI 开发” 主线上来**。GUI 开发更初始，更反映本质需求，浏览器出现之前已广泛存在。
+
+![Web framework history](md/res/D170602-01/web_tool_history.jpg)
+
+## 2. 网页可视化开发趋势
+
+我用 Delphi 做开发早于用 MFC，Delphi 1.1 刚推出就开始用了，当时 MFC 代表了先进生产力，当我熟悉 Delphi 后，改用 MFC 感觉异常痛苦。之后 20 年里我还用过 VB、WxWidget、PythonTk、Qt、C#、XCode 等 GUI 开发工具，整体观感是：Delphi 确立的开发方式仍是最佳，尽管 Delphi 日渐式微，以至现在很少有人提到它了。但那套 RAD (Rapid Application Develop) 开发模式并未过时，一些新兴工具，如 XCode，仍继承它的做法。
+
+拿 MFC 与 Delphi 对比前端开发工具，像 MFC 的有一堆，凡没支持所见即所得可视化设计的，像 Angular、Vue 等都应归入此类，像 Delphi 的几乎没有，该补课了，Shadow Widget 是例外，但 Shadow Widget 新近推出，应用效果有待检验。
+
+通用的可视化设计，在前端开发中那么难出现，我猜主要有两点原因：
+
+1. 为网页提供可视化设计的难度高于传统 GUI 工具，如 Delpphi、Qt、XCode 等   
+传统 GUI 工具只需为有限元素提供可视化设计封装，网页的可视化则不同，它面对各种标签，量大而且富于变化，增加控制属性很随意，扩展也随意，使用大量自定义标签是现代框架的重要设计手段。标签化描述类似于命令行，把海量命令行转为可视化设计并不容易。
+
+2. 受限于网页技术发展水平   
+在 Html5 与 Css3 出现之前，原生网页的表现力很有限，相比 Qt 所能实现 GUI 效果，相差了一大截。Html5 与 Css3 补上这个短板后，javascript 不适合模块化、工程化、规模化开发的短板突显出来，于是业界有 ES6、ES7、Babel 等新生事物冒出，借助 nodeJS 整合工具链，这个进程现已完成，尽管还留点缺陷。同时，Angular、React、Vue 等框架也在新兴的前端技术条件下，不断尝试最优开发方法，主流框架还都在快速叠代、演化中，MVC、MVVM、FRP 等方法不断推陈出新，最优的、达成共识的开发方法尚未形成。
+
+总之，网页开发正从当前的陈述方式（书写 HTML 的 tag 标签，或使用 JSX 定义界面），逐步走向 **陈述与可视化并重** 的方式。Shadow Widget 顺应了这个趋势，时机正好，若过早发展，估计会像 QML 那样沦为无名，当 JS 语言与框架还在快速变化中，尝试规范并简化界面的表达形式是徒劳的。
+
+尽管 React 核心库只在虚拟 DOM 层面提供方案，但它强烈的函数式风格，影响了其工具链上各工具的方向性选择，都对标到函数式开发上来了。这也导致 React 工具的易用性要比 Vue 差出不少，Vue 基于 MVVM 框架，很契合可视形态（也就是页面跑起来的样子）的界面开发方式。另外，当 Vue 也引入虚拟 DOM、store、action 等机制后，React 引以为傲的功能 Vue 里慢慢都会有，Vue 赶超 React 似乎指日可待。
+
+上述提法，基于我对前端开发场景的一个认知：**趋向静态的 MVVM 优于趋向动态的 FRP 架构**，当然，FRP 自有优势，如果二选一，宁选 MVVM，如果两者均可选，也应以 MVVM 为主，FRP 为辅，至少整体设计时如此（两者实际上处于不同层次，为主、为辅是相对的，下文还有介绍）。
+
+让网页支持所见即得的可视化设计，是 MVVM 框架的最高形态，以前没有类似工具，主要因为技术做不到。Shadow Widget 在设计之初就着手解决可视化设计的问题，立足点高于 Vue，这种优势正如 Vue 比 React 晚推出，可以大量借鉴 React 一样，Shadow Widget 也晚推出，可以吸取 Vue 优点。不同的是，支持可视化需在顶层做设计，改造已定形的 MVVM 框架来支持可视化并不容易。
+
+## 3. 回归本原之一：jQuery 用得爽如何继续爽下去？
+
+考虑一种应用场景，用户要开发一个网页，主体是展示一些文字与图片，也有少量交互控制的内容，比如输入反馈信息后点 “提交” 按钮。如果用 jQuery 开发，代码不足百行，如果用 React 会很麻烦，工具链很繁重，远没有用 jQuery 那么简单直接，或干脆什么库都不用，什么框架都不用，裸写 JS 都简化很多。
+
+现实开发中，此类场景经常遇到，产品开发并不总在处理复杂页面的。虽说裸写 JS 能减少麻烦，但经常不受控，有时与别人对接或合入别人的代码，别人用了 React，你不得不被同化；有时开始时简单，后来需求变了，网页越做越复杂，你不得不往框架迁移；还有时，为方便项目统一维护，上头要求所有 JS 都往 React 里塞。
+
+Shadow Widget 强调实用重于形式，它推荐的开发方式是：能用 ES5 编程尽量用 ES5，用 `<script>` 标签把 `react` 与 `shadow-widget` 库导入进来后，在网页文件中直接写 JS 脚本就能做开发。这就像以往 jQuery 编程那样，用 `<script>` 导入库，然后直接用 ES5 编码。
+
+如果按 React 官方推荐的方式，定义一个 Component 类样式如下：
+
+``` js
+class RedFlower extends React.Component {
+  constructor(props) {
+    // ...
+  }
+  
+  componentDidMount() {
+    // ...
+  }
+
+  render() {
+    // ...
+  }
+}
+```
+
+如果这么开启编程之旅，你就被 React 工具链绑架了，小红帽套上，你不要也得要。
+
+![奖你一朵小红花](md/res/D170602-01/reward_flower.jpg)   
+![不要也得要](md/res/D170602-01/catch_flower.jpg)
+
+Shadow Widget 内部一律改用 `React.createClass()` 引入 Component 行为定义，因为直接支持 ES5 规格的代码，不必经 Babel 转译，这看上去很土，却很实用。例如：
+
+``` js
+main['.body.top.p.tool'] = {
+  getDefaultProps: function() {
+    var props = T.Button.getDefaultProps();
+    // props.attr = value;
+    return props;
+  },
+
+  getInitialState: function() {
+    var state = this._getInitialState(this);
+    // ...
+    return state;
+  },
+
+  $onClick: function(event) {
+    alert('clicked');
+  },
+};
+```
+
+不过 Shadow Widget 不排斥用 ES6 编程，自定义一个 Component 类可以用 ES6+ 语法，只需从已有的，符合 Shadow Widget 规格的 Component 类开始继承，不能从 `React.Component` 继承，例如：
+
+``` js
+class MyButton_ extends T.Button_ {
+  constructor(name,desc) {
+    super(name,desc);
+  }
+  
+  getDefaultProps() {
+    var props = super.getDefaultProps();
+    // props.attr = value;
+    return props;
+  }
+
+  getInitialState() {
+    var state = super.getInitialState();
+    // ...
+    return state;
+  }
+
+  $onClick: function(event) {
+    alert('clicked');
+  }
+}
+
+// convert to React class
+var AbstractButton = new MyButton_();
+var MyButton = AbstractButton._createClass({});
+var jsx = <MyButton>test</MyButton>;
+
+var MyButton2 = AbstractButton._createClass( {
+  $onClick: function(event) {
+    alert('another onClick');
+  }
+});
+var jsx2 = <MyButton2>test2</MyButton2>;
+```
+
+注意到了吗？上面代码没有直接定义 `React class`，而是加了一层抽象，`AbstractButton` 是类的类，用 `AbstractButton._createClass()` 才实例化成 `React class`。这么设计，一方面让 Component 定义正常使用类继承，另一方面让 Component 的界面表现与行为定义能够分离，这是在线支持可视化设计的基础。
+
+## 4. 回归本原之二：不要一上来就让我陷入抽象！
+
+撇开网页设计的专有属性，任何产品开发都要求设计者先考虑用户怎么操作，UI 可视化设计过程，也就是定义用户需求，并把需求往各层设计分解的过程。所以，**界面设计是承上启下的，它应在编码之前进行，而不是与编码混杂同步进行，也不是先写底层代码，被动的跟随变化**。对于网页产品更如此，只要不拿网页开发命令行程序，网页就是用户交互操作最直接的媒介。
+
+React 的 JSX 设计方式让 GUI 设计混合于编码之中，未保证界面设计的第一性，其主流的 Flux 工具，均强化了数据传递如何设计，让开发者一上来就思考 action 与 store 怎么设计，而非界面该如何表现。react-route 更为极端，它鼓励大家第一步就思考路由，并以此为提纲展开各项设计，很不人性。**Shadow Widget 第一步就要求考虑界面如何表现，而且只在 UI 设计想清楚后再做别的**，然后第二步、第三步才考虑数据如何流动、路由如何规划等，让 “网页开发” 回归常规 GUI 开发，这才是正确的姿势。
+
+Vue 易用性胜过 React，很大程度上是因为 MVVM 中的 component 定义与界面表现一一对应，思考很直接。Shadow Widget 则在 MVVM 基础上增强了即时可视化能力，以所见即所得的方式让每次闭环叠代的周期缩短，从而让开发更加敏捷。
+
+拿具体例子解释上面意思，比方设计一个播放器，有两种思考方式，第一种，先理清界面交互方式，是否为了区分连接播放与只播放单个音频，在界面设计两个播放按钮，还是共用一个按钮（但另加 “是否连续播放” 选项框）？要不要提供暂停按钮？暂停按钮是否与播放按钮并合？第二种思考方式，先确定用到哪些数据，数据又由哪些 action 驱动，比如要有播放器与播放列表，要定义一个状态属性表示暂停或播放中，驱动它变更的 action 有 `play, pause, stop` 等，还要有一个 “是否连续播放” 属性，与播放列表一起作为 payload 附在 `play action` 上传递，播放列表还有增删改 action，等等。
+
+虽然这两种思考方式都能达到目的，但从严格意义上讲，选择哪一种是工作方法对错的问题，而不是个人风格喜好的问题。第二种思考方式错误在于，**“容易偏离需求” 与 “丧失需求分解层次感”**，至于 “设计过程欠直观” 还是次要的、附带的。容易偏离需求，比如你为手表设计播放器，增加的 “是否连续播放” 选项在界面摆不下，若采用第二种思考方式你很容易忽略这个限制。另外，设计过程是有层次的，自顶向下，由粗入细，需求在各层设计逐步分解，上一层操作方式变化会影响下一层如何设计，如果以数据与 action 为思考出发点，很容易丧失设计层次感，未前置思考界面如何交互，上层如何表现对下层设计的影响也容易被延后思考，甚至扭曲了。
+
+## 5. 引入 MVVM 并与 Flux 框架协作共存
+
+支持可视化设计的第一步，**分离 Component 的界面表现与它的行为定义**，即，在设计态我们在可视设计器中只展示各 Componet 的可视特征，而不捆绑它的行为定义（比如 onClick 事件处理），当产品正式运行时，即，非设计态，各 Component 的行为定义将在初始化时正常捆绑。Shadow Widget 可视设计的输出是 “转义标签”，保存在当前 `*.html` 文件中，行为定义则记录在 js 文件，这两者类似于 Delphi 的 `*.frm` 界面定义文件与 `*.pas` 代码实现文件。
+
+可视化设计第二步，**引入 MVVM 架构**。
+
+![MVVM](md/res/D170602-01/mvvm.jpg)
+
+Shadow Widget 内部采用 `Object.defineProperty()` 定义双源属性，使得类似 `comp.duals.attr = value` 的赋值语句能自动触发预设的 setter 函数。之后再对双源属性增加侦听机制，凡被 listen 的 `duals.attr`，其值变化会按事件方式被订阅，进而构造联动触发机制。
+
+双源属性解决了类似 Vue 中数据双向绑定的需求，ViewModel 建立在数据流自动传递基础上，Shadow Widget 为此还增加 `$if, $elif, $else, $for` 等控制指令，让界面能按特定规则由数据驱动自动生成，再有 trigger 机制、可计算属性、栈式调用空间等设计，让数据传递、组装、条件控制等变得灵活、强大。总之，Shadow Widget 的 MVVM 机制与 Vue 基本类似，限于篇幅本文不展开介绍。
+
+支持可视化设计第三步，**让 MVVM 架构与 Flux 单向数据流协同工作**。
+
+这里只扼要解释，以后还会专门写文章介绍。在 Shadow Widget 中，各 Component 若未按编程方式参与行为定制（专指在 `main[sPath]` 定义投影类，或用 `idSetter[sId]` 实现定义），就视作 View 节点，凡参与定制的 Component 视作 ViewModel，各 ViewModel 节点使用的 `props.attr` 与 `duals.attr` 属于 Model。这是一种通过扩展虚拟 DOM 节点的能力而实现的机制，并不直接干扰 Flux 单向数据流机制，有影响的是，我们要采用多 Store 而非单 Store 机制，另外还要把 Component 节点复用为 Store 节点，用双源属性支持 action 分发（dispatch）与触发（trigger）。
+
+可视化设计与 MVVM 架构密不可分，React 技术栈与 Flux 机制密不可分，它的 Functional React Programming 理念与可视化编程可以兼容，MVVM 主导上层些、粗粒度的设计，细粒度与横向联系由 FRP 主导。两者交汇点就是参与行为定制的、可视的 Component 节点，也就是 `ViewModel` 节点。**双源属性同时支撑 MVVM 框架与 FRP 框架，两种框架分别主管 “纵向嵌套定义界面” 与 “横向消息联系”，处理过程非常自然**。
+
+## 6. 工程化开发的必然需求：技术分层与人员分工
+
+各个主流前端框架都使用 NodeJS 集结工具链，它们都考虑了规范化、工程化开发的需求，都用 NPM 包管理各层库的依赖关系，但它们普遍没为技术分层带来的人员分工，在框架层面提供有效支持。
+
+无论 Angular，React，还是 Vue，都是重框架，轻不起来，快速入门不能算轻，要以真正能开发产品、独立解决问题为准，学透这些框架都要花不少时间。回想十年前，前端开发是一个实习生简单翻翻参考书就能做的，现在要有一年以上经验才算入门，而且，不同素质的人产出代码的质量相差很远。前端开发该对人员分层管理了，这是既是工程化开发的需求，也是产品开发趋于复杂化必然提出的要求。
+
+Shadow Widget 所构筑的技术体系，将前端开发划分为两大部分：构件（Widget）开发与界面（GUI）开发。前者要求分发者具备完整技能，后者则只需简单技能，即：会用 html、css、javascript，掌握 react 入门知识，借助界面可视化设计器很快就能胜任工作。也就是说，我们预想前端开发人员至少可分两类，一类是入门级的，实习生水准，他主要工作是拿别人已开发好的构件搭积木，另一类是高级工程师，他为前一类开发者开发构件。
+
+相信所有老板都喜欢这么分工，能省钱！专业化分工后，整体开发效率与质量都会提升。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key="auto0"></div>
+<div $=ScenePage key="auto1" no-show="1"></div>

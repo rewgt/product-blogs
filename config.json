@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_modify": 1496371563428,
+  "last_modify": 1496798825569,
   "user_name": "rewgt",
   "imported_repos": [
     [
@@ -11,6 +11,16 @@
   "repos_name": "blogs",
   "repos_desc": "Blog",
   "doc_list": [
+    {
+      "path": "md/D170602-01.txt",
+      "tag": ".拼文产品",
+      "markdown": true,
+      "title": "介绍一项让 React 可以与 Vue 抗衡的技术",
+      "modify_at": 1496733615517,
+      "create_at": 1496371675774,
+      "desc": "好吧，我承认我是标题党。React 明明如日中天，把它与 Vue 倒过来，给 Vue 加点东西或可与 React 抗衡。不过，这两年 Vue 干的正是这事，不断加东西，不断优化，按它现有发展速度超越 React 或在情理之中。如果我有一项技术，能让 React 克服短板、维持长板，Vue 再怎么追都赶不上呢？",
+      "hidden": true
+    },
     {
       "path": "md/D170513-02.txt",
       "tag": ".拼文产品",
