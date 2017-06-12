@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_modify": 1496798825569,
+  "last_modify": 1497269057521,
   "user_name": "rewgt",
   "imported_repos": [
     [
@@ -11,6 +11,17 @@
   "repos_name": "blogs",
   "repos_desc": "Blog",
   "doc_list": [
+    {
+      "path": "md/D170609-01.txt",
+      "tag": ".拼文产品",
+      "markdown": true,
+      "title": "JSX 与 idSetter 在 Shadow Widget 中的妙用",
+      "modify_at": 1497261940595,
+      "create_at": 1496972922515,
+      "desc": "Shadow Widget 提倡在可视设计器中开发用户界面，输出转义标签，而非 JSX。许多童鞋可能不知道 SW 同样支持用 JSX 设计界面，而且开发体验比原生 React 编程好出很多，本文就介绍这方面知识。",
+      "thumb": "md/res/D170609-01/zicaibaofan.jpeg",
+      "hidden": true
+    },
     {
       "path": "md/D170602-01.txt",
       "tag": ".拼文产品",
@@ -56,38 +67,42 @@
       "tag": ".拼文产品",
       "markdown": true,
       "title": "Shadow Widget 非正经入门（之三）",
-      "modify_at": 1495093027468,
+      "modify_at": 1497269057521,
       "create_at": 1494498016152,
       "desc": "本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇讲解双源属性、不可变数据、事件驱动等。",
-      "hidden": true
+      "hidden": false,
+      "thumb": "md/res/D170511-02/lovejob.jpg"
     },
     {
       "path": "md/D170511-01.txt",
       "tag": ".拼文产品",
       "markdown": true,
       "title": "Shadow Widget 非正经入门（之二）",
-      "modify_at": 1495245659457,
+      "modify_at": 1497150340755,
       "create_at": 1494472082193,
       "desc": "本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点。本篇讲解转义标签、json-x、投影定义，这几项与 \"如何分离界面设计\" 有关。",
-      "hidden": true
+      "hidden": false,
+      "thumb": "md/res/D170511-01/wiki.png"
     },
     {
       "path": "md/D170509-02.txt",
       "tag": ".拼文产品",
       "markdown": true,
       "title": "Shadow Widget 非正经入门（之一）",
-      "modify_at": 1496371563428,
+      "modify_at": 1497146308119,
       "create_at": 1494316226732,
-      "desc": "本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点，既作为用户手册的补充，也从更本质角度帮助大家理解 Shadow Widget 为什么这样设计，相关概念是怎么提出的，正确的使用姿势等。"
+      "desc": "本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点，既作为用户手册的补充，也从更本质角度帮助大家理解 Shadow Widget 为什么这样设计，相关概念是怎么提出的，正确的使用姿势等。",
+      "thumb": "md/res/D170509-02/jiu_shu.jpg"
     },
     {
       "path": "md/D170509-01.txt",
       "tag": ".拼文产品",
       "markdown": true,
       "title": "Shadow Widget 框架概略介绍",
-      "modify_at": 1494311738129,
+      "modify_at": 1497146533948,
       "create_at": 1494301446076,
-      "desc": "Shadow Widget 是一个基于 React 的前端开发框架，聚焦于提供所见即所得可视化的 web 页设计器。本文从更原始角度，为童鞋们介绍 Shadow Widget 是什么样的轮子，及，创造它的初心。"
+      "desc": "Shadow Widget 是一个基于 React 的前端开发框架，聚焦于提供所见即所得可视化的 web 页设计器。本文从更原始角度，为童鞋们介绍 Shadow Widget 是什么样的轮子，及，创造它的初心。",
+      "thumb": "md/res/D170509-01/snake.jpg"
     }
   ]
 }

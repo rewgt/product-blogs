@@ -7,7 +7,7 @@ Shadow Widget 非正经入门（之三）
 
 &nbsp;
 
-## React 中的隐式双源
+## 1. React 中的隐式双源
 
 ``` js
 var mainComp = null;
@@ -68,7 +68,7 @@ setTimeout( function() {
 
 `props.xxx` 驱动的刷新是一个源头，`state.xxx` 驱动的刷新是另一个源头，合起来是 "双源驱动"。
 
-## 改造双源驱动
+## 2. 改造双源驱动
 
 由于 React 限定本节点 `props.xxx` 是只读的，我们通过改造，让一个节点既接受 `props.xxx` 驱动，也接受 `state.xxx` 驱动。让 React 隐式的双源驱动，变成显式的双源驱动，如下：
 
@@ -128,7 +128,7 @@ Shadow Widget 双源驱动的优点在于 **"让 DOM 节点功能回归本原"**
 [reflux](https://github.com/reflux/refluxjs) 为实现 React flux 机制，仿 component 接口设计了 store，如果没有上述 `props.xxx` 限制，我相信把 component 与 store 合一远优于现有设计。回归原本的设计好处是潜在的，因为倾斜的地基会导致上层
 建筑更加倾斜。
 
-## 数据侦听机制
+## 3. 数据侦听机制
 
 Shadow Widget 将双源驱动归一后，用 `duals.attr` 存取属性，而且系统内部对读写 `duals.attr` 做了封装，"读属性" 自动转从 `state.attr` 读值，"写属性" 则封装成事件驱动机制，等效于调用 `comp.setState({attr:value})`，但它所做的事远不止这个，还包括：
 
@@ -151,7 +151,7 @@ Shadow Widget 将双源驱动归一后，用 `duals.attr` 存取属性，而且�
 
 第 1 行写法的效果是：sourceComp.duals.attr 发生变化后，自动触发 targetComp['attrMethod'] 的函数调用。第 2 行则触发由参数指定的回调函数。
 
-## 数据更新的判断依据
+## 4. 数据更新的判断依据
 
 Shadow Widget 采用 "恒等比较" 的方式判断两个数值是否更改为，在 `comp.duals.attr = value` 与 `comp.setState({attr:value})` 语句中，当所赋新值（`value`）与旧值恒等（即 `===`），则视作数据未更新，也就不会触发相应的 setter 调用或 listen 调用。
 
@@ -159,7 +159,7 @@ Shadow Widget 已为各构件配置 `shouldComponentUpdate()` 与 `componentWill
 
 至于如何对 Array 或 Object 快速构造新数据，以便被系统判断为 "非恒等"，我们建议用 React addon 提供的 `update` 接口，Shadow Widget 已缺省内置该函数，即 `ex.update()`，请参考 Shadow Widget 的 API 手册。
 
-## 自动定义的双源属性
+## 5. 自动定义的双源属性
 
 双源属性一般要调用 `comp.defineDual()` 注册后才使用，但对于 DOM 节点内置属性是例外，如 `title, id, name` 等，这些属性只要节点在创建时，传入的 `props` 用到了，就会被系统自动注册为双源属性。《Shadow Widget 用户手册》的 "2.2.2 定义双源属性" 有这些属性的完整列表。
 
@@ -171,17 +171,18 @@ Shadow Widget 已为各构件配置 `shouldComponentUpdate()` 与 `componentWill
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
 <div $=ScenePage key='auto0'></div>
 <div $=ScenePage key='auto1' no-show='1'>
-  <div $=rewgt.DrawPaper key='flow' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{261}' height='{145}' sty__='{{"zIndex":"-998"}}' offset-x='{-123}' offset-y='{-52}' left='{-198}' top='{-139}' def-id='_1494560749'>
-    <div $=rewgt.SvgPanel key='auto2' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{141}' top='{71}' width='{112}' sty__='{{"strokeColor":"#888","fillColor":"#eee"}}' svg.cfg='{[0,[null,[["auto5",-2,"auto3"]]],"lib/res/rect.svg.json"]}'>
+  <div $=rewgt.DrawPaper key='flow' sty__='{{"zIndex":"-998"}}' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{261}' height='{145}' offset-x='{-123}' offset-y='{-52}' left='{-198}' top='{-139}' def-id='_1494560749'>
+    <div $=rewgt.SvgPanel key='auto2' sty__='{{"strokeColor":"#888","fillColor":"#eee"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{141}' top='{71}' width='{112}' svg.cfg='{[0,[null,[["auto5",-2,"auto3"]]],"lib/res/rect.svg.json"]}'>
       <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>main 节点</pre>
     </div>
-    <div $=rewgt.SvgPanel key='auto3' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{236}' top='{143}' width='{108}' sty__='{{"strokeColor":"#888","fillColor":"#eee","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"141px","top":"71px","width":"88px","height":"40px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iNDAiIHZpZXdQb3J0PSIwIDAgMTAwIDQwIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPScjODg4JyBmaWxsPScjZWVlJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9Jyc+PHJlY3QgeD0nMCcgeT0nMCcgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgcng9JzUnIHJ5PSc1Jy8+PC9nPjwvc3ZnPg==\")"}}' svg.cfg='{[0,[null,[["auto7",-2,"auto2"]]],"lib/res/rect.svg.json"]}'>
+    <div $=rewgt.SvgPanel key='auto3' sty__='{{"strokeColor":"#888","fillColor":"#eee","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"141px","top":"71px","width":"88px","height":"40px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iNDAiIHZpZXdQb3J0PSIwIDAgMTAwIDQwIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPScjODg4JyBmaWxsPScjZWVlJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9Jyc+PHJlY3QgeD0nMCcgeT0nMCcgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgcng9JzUnIHJ5PSc1Jy8+PC9nPjwvc3ZnPg==\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{236}' top='{143}' width='{108}' svg.cfg='{[0,[null,[["auto7",-2,"auto2"]]],"lib/res/rect.svg.json"]}'>
       <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>txt 节点</pre>
     </div>
-    <div $=rewgt.SvgPanel key='auto5' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{221}' top='{59}' width='{103}' height='{110}' sty__='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' svg.cfg='{[-2,["",0,0,2,0,0,23,11,39,54],"lib/res/arrows.svg.json"]}' data-from='auto2'></div>
-    <div $=rewgt.SvgPanel key='auto7' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{165}' top='{87}' width='{105}' height='{110}' sty__='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' svg.cfg='{[-2,["",0,0,2,41,54,16,43,0,0],"lib/res/arrows.svg.json"]}' data-from='auto3'></div>
-    <div $=rewgt.SvgPanel key='auto8' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{235}' top='{60}' width='{128}' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+    <div $=rewgt.SvgPanel key='auto5' sty__='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{221}' top='{59}' width='{103}' height='{110}' svg.cfg='{[-2,["",0,0,2,0,0,23,11,39,54],"lib/res/arrows.svg.json"]}' data-from='auto2'></div>
+    <div $=rewgt.SvgPanel key='auto7' sty__='{{"strokeColor":"rgb(119,119,119)","fillColor":"rgb(119,119,119)","zIndex":"-1"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{165}' top='{87}' width='{105}' height='{110}' svg.cfg='{[-2,["",0,0,2,41,54,16,43,0,0],"lib/res/arrows.svg.json"]}' data-from='auto3'></div>
+    <div $=rewgt.SvgPanel key='auto8' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{235}' top='{60}' width='{128}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
       <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>setState()</pre>
     </div>
   </div>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-164}' top='{23}' sty__='{{"background":"url(md/res/D170511-02/lovejob.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
 </div>

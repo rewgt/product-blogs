@@ -5,9 +5,9 @@ Shadow Widget 非正经入门（之一）
 
 本系列博文从 Shadow Widget 作者的视角，解释该框架的设计要点，既作为用户手册的补充，也从更本质角度帮助大家理解 Shadow Widget 为什么这样设计，相关概念是怎么提出的，正确的使用姿势等。
 
-&nbsp;
+![救赎](md/res/D170509-02/jiu_shu.jpg)
 
-#### 前言
+## 1. 前言
 
 "非正经入门" 是相对 "正经入门" 而言的。
 
@@ -17,7 +17,7 @@ Shadow Widget 非正经入门（之一）
 
 要求读者对 React 开发技术已有深入了解，否则，嗯，还请回到 "正经入门" 的学习方式吧，这几篇博客用作技术回顾也是不错的，能让大家对 Shadow Widget 体系的本质性原理认识更深入些。
 
-#### 快速入门建议
+## 2. 快速入门建议
 
 1. 先学会用拼文写文档，注册一个 github 账号，把 rewgt/blogs 库 fork 到自己名下，然后用这个库写自己的博客，参见 [这份介绍](https://rewgt.github.io/blogs/)。   
 &nbsp;   
@@ -30,7 +30,7 @@ Shadow Widget 界面设计严重依赖两样东西，一是使用 markdown 语�
 &nbsp;   
 Shadow Widget 编程体系具有内敛特质，入门时学习工作量较大，入门后，在 Shadow Widget 之上的众多组件（或库）都是扩展插件，规格一致，学起来很容易。另外，借助可视化设计的特点，记忆负担轻，基本上通过拖入一个样板来创建构件，选中构件后配置它的属性，遇到不清楚的 API，再查一下在线帮助，很方便的。
 
-#### React 三宗罪
+## 3. React 三宗罪
 
 事先申明，React 是一个优秀框架，我不黑 React。
 
@@ -38,9 +38,9 @@ Shadow Widget 编程体系具有内敛特质，入门时学习工作量较大，
 
 因为 React 确立一种函数式的，单向数据驱动的，JSX 与 JS 代码混写的编程模式，既有它的先进性，也必然引入一些让人垢病的因素，下文 "三宗罪" 所列就是典型的负面因素，也是当前 React 生态圈尚未有效解决的焦点问题。当然，shadow-widget 出世后，这些不利影响也基本消除了。所以，React 三宗罪是 "React + 其它" 的三宗罪，不是 "React + shadow-widget" 的三宗罪。
 
-#### 三宗罪之一：长工具链
+### 3.1 三宗罪之一：长工具链
 
-学习 React 要面临超长工具链，这是不利消息，好消息是，这套工具链经过数年磨炼，现在基本稳定下来了（坑还是不少，前人有总结，你不把它当坑就行 ![emoji](md/res/D170509-02/emoji.png)）。关于超长工具链，请参考我的上一篇博客 [《Shadow Widget框架概略介绍》](http://localhost:3000/product-blogs/index.html?doc=D170509-01.txt)，React 工具链尚在春秋战国，过于发散、杂乱、低效，而且，**在严谨普适的方法论与直观易用之间，还没找到最佳平衡方式**。
+学习 React 要面临超长工具链，这是不利消息，好消息是，这套工具链经过数年磨炼，现在基本稳定下来了（坑还是不少，前人有总结，你不把它当坑就行 ![emoji](md/res/D170509-02/emoji.png)）。关于超长工具链，请参考我的上一篇博客 [《Shadow Widget框架概略介绍》](https://rewgt.github.io/product-blogs/index.html?doc=D170509-01.txt)，React 工具链尚在春秋战国，过于发散、杂乱、低效，而且，**在严谨普适的方法论与直观易用之间，还没找到最佳平衡方式**。
 
 当年 Brendan Eich 创造 javascript，仅为简陋的网页增加一点简单编程手段，现在的 JS 所处生态环境，远非早年样子，即便五年前，网页编程还都是很简单，一个 jQuery 解决大半问题。事实上，这种简易的形态反倒与网页主流状态相适配，多数网页只是展示信息，加点小量编程就够用。现在问题是，**轻量编程与重量编程之间没有界限**，有时刚开始是轻量的，一边维护一边追加功能就慢慢变重了，有时自己负责部分是轻量级的，但与他人对接，别人是重量级开发，不得已被同化成重量级应用。
 
@@ -50,7 +50,7 @@ Shadow Widget 建立一个插件式框架，"开发新构件并封装成样板" 
 
 在 Shadow Widget 之上扩展的 [PINP Blog](https://github.com/rewgt/blogs)，更是将写文章与编程拉通，实践 "写作即编程" 的理念，从轻量开发过渡到重量级开发，是很自然的过程。
 
-#### 三宗罪之二：JSX浆糊
+### 3.2 三宗罪之二：JSX浆糊
 
 JSX 看起来像 html，能直接描述界面设计，我们拿 React 官网上一段代码来举例：
 
@@ -71,7 +71,7 @@ Shadow Widget 通过一系列手段解决 "界面设计" 与底层分离的问�
 
 不追求纯正的函数式开发，不强调纯函数组件，什么东西最有效，能解决问题就选它。本系列文章后面还会解释，函数式开发的思维方式既有优势也有劣势，尤其将 FRP（Functional Reactive Programming，函数响应式编程）严格应用到现实项目，必然遭遇反人性困局。编程的世界里没有纯粹的东西，因为人性并不纯粹，过份追求 "纯正" 会让事情走向反面。
 
-#### 三宗罪之三：分层解耦
+### 3.3 三宗罪之三：分层解耦
 
 软件开发中有两类分层，一是软件功能的分层，二是人员的分层。当前端开发变复杂后，这两类分层的需求变得更强烈，尤其针对简单网页的开发，你不能要求所有开发人员都是专家，但 React 生态链的现状是，能用 React 正式开发产品时，你已经是准专家了，在有产出之前，你要熟悉一堆工具、一堆规则、一堆语法，要踩不少坑。
 
@@ -89,7 +89,7 @@ Shadow Widget 通过一系列手段解决 "界面设计" 与底层分离的问�
 
 其次，设计转义标签、json-x 描述、投影定义等机制，让界面与底层分离，实现 MVVM 框架，相关细节请看《Shadow Widget 用户手册》。最后，引入双源属性、可计算属性等概念，把 React 的函数式编程往指令式上拉回一点，或者更准确一点说，在界面设计，即 "V" 层，采用指令式风格，而 "VM" 与 "M" 层仍沿用原先的函数式风格。
 
-#### Shadow Widget 渊源
+## 4. Shadow Widget 渊源
 
 Shadow Widget 由 PINP.ME 团队研发，PINP.ME 一直专注于提供以 HTML5 技术撰写文档的工具，包括类似 WORD 的博客文档与类似 PPT 的演示胶片。最早发布的 PINP 版本距今已有四年，早期的 PINP 采用 [Ractive](http://www.ractivejs.org/) 框架，后来全盘重构，改用 React，就是大家现在看到的 [PINP Blog 产品](https://github.com/rewgt/blogs)。
 
@@ -102,5 +102,7 @@ PINP 改版最大变化是，层次划分更清晰、开发方法更先进，推
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
-<div $=ScenePage key="auto0"></div>
-<div $=ScenePage key="auto1" no-show="1"></div>
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-168}' top='{-84}' sty__='{{"background":"url(md/res/D170509-02/jiu_shu.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+</div>

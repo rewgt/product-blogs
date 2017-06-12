@@ -1,0 +1,338 @@
+JSX 与 idSetter 在 Shadow Widget 中的妙用
+---------------
+
+&nbsp;
+
+Shadow Widget 提倡在可视设计器中开发用户界面，输出转义标签，而非 JSX。许多童鞋可能不知道 SW 同样支持用 JSX 设计界面，而且开发体验比原生 React 编程好出很多，本文就介绍这方面知识。
+
+&nbsp;
+
+## 1. 被官方忽视的开发方法
+
+Shadow Widget 区别于其它前端框架的关键特色是可视化设计，因为 JSX 与 javascript 混写，不能直接支持可视化设计。所以，SW 用 “转义标签” 表达可视设计的输出，因为 SW 强调可视化，所以如何运用 JSX 的内容，在官方文档中被弱化了，有一些零星介绍，分散在手册各个章节，本文将它们串接起来讲。
+
+在 Shadow Widget 下做开发，既可以是主流的 **“正交框架” 模式**（也就是遵循 MVVM 思路设计可视界面，再用 Flux 框架组织横向数据流的开发方式），也可以完全顺从 **React 原生模式**，只把 SW 看作更好的 lib 库来使用。**下面我们结合代码实例，讲解后一开发方式。
+
+由于 JSX 界面设计与用鼠标拖拉配置界面的设计是等价的，我们以 React 原生模式做开发，相对 SW 主流方式，主要损失可视化的直观特性，其它并不损失。当然，目前使用 JSX 还得借助 Babel 转译环境，搭建 "Babel + Browserify" 或 "Babel + Webpack" 开发环境是不得已的选择。
+
+如何创建新工程及如何搭建 Browerify 或 Webpack 环境，请参考《Shadow Widget 用户手册》的 “3.1 搭建工程环境” 一章。
+
+## 2. 几个等价概念
+
+1) `json-x`
+
+`json-x` 是 “转义标签” 的数据化形式，用 javascript 的 Array 数据表达各层嵌套节点。`json-x` 与转义标签的关系，就像 xml 与 HTML DOM 的关系。`json-x` 与 `JSX` 是对应的，是同一类东西，不过 `json-x` 不如 JSX 易读。
+
+&nbsp;
+
+2) WTC（Widget Template Class，构件模板类）
+
+WTC 对应于 React 中各 Component 的 class 类定义。React 要求这么定义：
+
+``` js
+class MyButton extends React.Component {
+  constructor(props) {
+    // ...
+  }
+  
+  componentDidMount() {
+    // ...
+  }
+
+  render() {
+    // ...
+  }
+}
+```
+
+WTC 要求这么定义（必须从已有的 WTC 类继承）：
+
+``` js
+class MyButton_ extends T.Button_ {
+  constructor(name,desc) {
+    super(name,desc);
+  }
+  
+  getDefaultProps() {
+    var props = super.getDefaultProps();
+    // props.attr = value;
+    return props;
+  }
+
+  getInitialState() {
+    var state = super.getInitialState();
+    // ...
+    return state;
+  }
+
+  componentDidMount() {
+    // ...
+  }
+  
+  $onClick: function(event) {
+    alert('clicked');
+  }
+}
+```
+
+WTC 不是 React class，不能在 JSX 中直接使用，应先转成 React class。
+
+&nbsp;
+
+3) render 函数
+
+如果想把 React 程序写得更严谨，减少 Side Effects，应该在 `render()` 函数集中处理各种控制逻辑，对其它函数的功能，诸如 `getInitialState, componentDidMount, componentWillUnmount` 等，不妨简单这么理解：为 `render()` 提供配置服务。当配置缩简到可以忽略时，Component 定义便退化为单个函数（即 Functional Component），该函数等效提供 `render` 功能。
+
+Shadow Widget 按这个思路，把控制逻辑集中在 `render()` 函数中处理，包括：duals 双源属性的侦听、触发、联动，`$if, $for` 等控制指令与可计算属性自动更新等。因为复杂性在此封装，`render` 不便公开给用户定制，另外，Shadow Widget 为了支持可视化设计，尽量将 `render()` 中的逻辑控制分解，分离出属性项供配置，所以，Shadow Widget 不再鼓励用户自定义 `render()` 函数，虽然大家可以 hack 各 WTC 的 `render` 实现过程，然后仿照着自己写一个，但这不是建议的做法。
+
+借助以下途径，在 Shadow Widget 可实现 render 过程的逻辑控制：
+
+1. 由 `props.attr, duals.attr, state.attr` 取值控制当前节点的界面表现   
+其中，`props.attr` 反映了 Component 生存周期内的不变量，`duals.attr` 是可变量，`state.attr` 也是可变量，倾向用作节点内私有控制（不供其它节点调用）。
+
+2. 在 render 渲染之外，调用 `comp.setChild()` 来增、删、修改子节点   
+即：不在 `render()` 调用的过程之中调用 `comp.setChild()`
+
+3. 在 `idSetter` 函数中，调用 `utils.setChildren()` 来增、删、修改子节点
+
+上面 3 点，第一点比较好理解，第二点是 Shadow Widget 增加的，原生 React 不提供这种操作，比方说，在一个页面提交一条反馈意见，用户可以点一下 “删除” 按钮可删掉刚提交的意见。若用原始 javascript 实现，大概用这么一条语句：
+
+``` js
+commentNode.parentNode.removeChild(commentNode);
+```
+
+原生 React 处理这种需求要稍微绕一下，给 `commentNode` 的父节点发个 "删除指令"，然后由它代为实施 "删除操作"。Shadow Widget 提供 `comp.setChild()` 相当于补回 javascript 本可直接实现的操作。
+
+上面第三点，在传入的 `props.id__` 函数中，可以通过修改 `duals.attr` 与 `state.attr` 改变本节点的显示效果，还能通过调用 `utils.setChildren()` 来改变子节点怎么显示。其实现原理与在 `render()` 函数中写代码是等价的，将在后文细述。
+
+## 3. 将 WTC 转化为 React class
+
+同为定义 component 类，WTC 继承链与 React class 继承链是不相干的两条链，前者起始于 `T.Widget_`，后者起始于 `React.Component`。当前者 WTC 类实例调用 `_createClass()` 得到值，才与后者等效。
+
+比如：
+
+``` js
+var AbstractButton = new MyButton_();  // MyButton is WTC
+var MyButton = AbstractButton._createClass();
+var jsx = <MyButton>test</MyButton>;
+
+var MyButton2 = AbstractButton._createClass( {
+  $onClick: function(event) {
+    alert('another onClick');
+  }
+});
+var jsx2 = <MyButton2>test2</MyButton2>;
+
+var MyButton3 = T.Button._createClass( {
+  $onClick: function(event) {
+    alert('yet another onClick');
+  }
+});
+var jsx3 = <MyButton3>test3</MyButton3>;
+```
+
+简单理解 WTC，可把它看作 React class 的 class 定义，即，它是一种用于生成 React class 的模板，所以 WTC 是 "构件模板" 的类（Widget Template Class）。
+
+我们之所以要插入 “模板” 一级的抽像物，主要为了适应可视化编程，Widget Template 不只用来生成 React class，也为可视设计器提供支持。另外，一个 Component 的行为在 WTC 中定义，还是在 `_createClass(defs)` 的传入参数（即投影类）定义是可选的，比如上例中 `$onClick` 事件函数，在哪个地方都可定义。这么设计的好处是：习惯用 ES6 编码的童鞋，在 WTC 编程，习惯用 ES5 的，用投影类编程，不必搭建 Babel 转译环境。
+
+Shadow Widget 提供 `utils.getWTC()` 接口用来批量从 T 模块取得 React class，比如：
+
+``` js
+var t = utils.getWTC('*'); // or, utils.getWTC(['Panel','P'])
+
+var jsx = ( <t.Panel width={300}>
+  <t.P>Hello, world!</t.P>
+  <t.P><button>Test</button></t.P>
+</t.Panel> );
+```
+
+请注意，使用来源于 WTC 的 React class 构造界面，系统会自动生成一颗树，各节点按层次串接起来，任何非 WTC 节点都不能成为 WTC 节点的父节点，反过来可以，即：**非 WTC 节点能挂到 WTC 节点下，但 WTC 节点不能挂到非 WTC 节点下**。比如上面 `button` 不是 WTC 节点，可以挂到 WTC 节点 `t.P` 之下，成为末梢节点。
+
+## 4. 用函数封装投影定义
+
+React 中的 `Functional Component` 是函数，表达一种处理过程，拿它用作 JSX 中的 tag，就像动词误作名词般 “闪着一丝诡异的光”。
+
+在 Shadow Widget 中传递给 `props.$id__` 的 idSetter 也是函数，也像 `Functional Component` 那样把想表达的内容，用一个函数全包了，但 idSetter 并不诡异，它从属于某个 tag 标签。
+
+比如：
+
+``` js
+function btn__(value,oldValue) {
+  if (value <= 2) {
+    if (value == 1) {  // init process
+    }
+    else if (value == 2) { // mount
+    }
+    else if (value == 0) { // unmount
+    }
+    return;
+  }
+
+  // rendering for evey render()
+  // ...
+}
+
+var jsx = <MyButton $id__={btn__}>test</MyButton>
+```
+
+若用 `Functional Component` 方式编程，先定义的一个 `MakeButton` 函数，然后用 `<MakeButton>test</MakeButton>` 描述 UI 界面。`MakeButton()` 最终返回的 tag 是 `button`，还是 `span`，或是其它是动态变化的，但上述 `<MyButton $id__={btn__}>test</MyButton>` 却是明确指定 tag 是 `MyButton`，很直接，只不过 `$id__` 是全能函数。 
+
+idSetter 之所以全能，是因为系统在 React class 的 `componentWillMount, componentDidMount, componentWillUnmount, render` 这 4 个函数中增加了对 idSetter 函数自动调用。其中，`value <= 2` 下的 3 个条件分支，分别等效于在 `componentWillMount, componentDidMount, componentWillUnmount` 中编码，其它条件（即 `value > 2`）相当于在 `render` 函数中编码。更多关于 idSetter 的知识，请参考手册 `3.3.4` 节与 `3.3.5` 节。
+
+设计用户界面时，手头的 tag 标签相当于食材，比如 “米饭”，给各 tag 指定各种属性来控制它的外观，这是最直接的设计方式。`Functional Component` 是 “紫菜包饭”，用函数形式包裹食材，idSetter 方式则相当于 “饭包紫菜包饭”，外观表现仍是 “米饭”，内层用紫菜包裹过。
+
+![饭包紫菜包饭](md/res/D170609-01/zicaibaofan.jpeg)
+
+这么处理有几个好处：
+
+1. 增强了功能，又契合函数式编程风格   
+`Functional Component` 功能受限，因为不能插入 `componentDidMount, componentWillUnmount` 时的处理，若用 React class 定义一个 Component 的行为，你拥有 `componentDidMount, componentWillUnmount` 等专项处理函数，但 React class 定义是静态声明，非单项函数，把 class 定义在层层嵌套的任一函数中，比较别扭。idSetter 同时克服了这两种缺陷。
+
+2. 便于 lifting state up   
+当我们采用 JSX 描述界面时，行为定义（属性与动作函数）与虚拟 DOM 描述混在一起，这时仅依赖 `props.attr` 逐层传递的数据共享方式，用起来不方便。React 官方为此提供一种 “上举 state” 的解决方案，参见 [Lifting state up](https://facebook.github.io/react/docs/lifting-state-up.html)。
+
+我们取 React 官方 `Lifting State Up` 一文介绍的，判断温度是否达到沸点的场景，举个例子：
+
+``` js
+var React = require('react');
+var ReactDOM = require('react-dom');
+
+var W = require('shadow-widget');
+var main = W.$main, utils = W.$utils, ex = W.$ex;
+var idSetter = W.$idSetter, t = utils.getWTC('*');
+
+function calculatorUI() {
+  var selfComp = null, verdictComp = null;
+  var scaleNames = { c:'Celsius', f:'Fahrenheit' };
+  
+  function onInputChange(value,oldValue) {
+    var scale = this.parentOf().props.scale || 'c';  // 'c' or 'f'
+    var degree = parseFloat(value) || 0; // take NaN as 0
+    selfComp.duals.temperature = [scale,degree];
+  }
+  
+  function calculator__(value,oldValue) {
+    if (value <= 2) {
+      if (value == 1) {      // init
+        selfComp = this;
+        this.defineDual('temperature', function(value,oldValue) {
+          if (Array.isArray(value) && verdictComp) {
+            var scale = value[0], degree = value[1];
+            var isBoil = degree >= (scale == 'c'?100:212);
+            verdictComp.duals['html.'] = isBoil?
+              'The water would boil.':
+              'The water would not boil.';
+          }
+        });
+      }
+      else if (value == 2) { // mount
+        verdictComp = this.componentOf('verdict');
+        
+        var field = this.componentOf('field');
+        var inputComp = field.componentOf('input');
+        var legend = field.componentOf('legend');
+        var sScale = field.props.scale || 'c';
+        legend.duals['html.'] = 'Temperature in ' + scaleNames[sScale];
+        
+        inputComp.listen('value',onInputChange.bind(inputComp));
+        selfComp.duals.temperature = [ sScale,
+          parseFloat(inputComp.duals.value) || 0
+        ];
+      }
+      else if (value == 0) { // unmount
+        selfComp = verdictComp = null;
+      }
+      return;
+    }
+  }
+  
+  return ( <t.Panel key='panel' width={300} $id__={calculator__}>
+    <t.Fieldset key='field' width={0.9999} scale='c'>
+      <t.Legend key='legend'></t.Legend>
+      <t.Input key='input' type='text' defaultValue='0' />
+    </t.Fieldset>
+    <t.P key='verdict' width={0.9999} />
+  </t.Panel> );
+}
+
+main.$onLoad.push( function() {
+  var bodyComp = W.body.component;
+  var jsx = calculatorUI();
+  bodyComp.setChild(jsx);
+});
+```
+
+在 Flux 框架中，由 Store 直接驱动的那个 View 也叫 `Controller View`，其下层由各层 View 由 `Controller View` 往下逐层传数据来驱动。当 `Store + Controller View` 的处理逻辑越集中，可理解性就越好，编码与维护也越容易。反过来，如果 `Controller View` 的下层节点还处理复杂的控制逻辑，你就不得不将它设计成 "Store + Controller View"，程序复杂性无疑会增加。
+
+![controller view](md/res/D170609-01/mvc_controller.gif)
+
+Shadow Widget 的 `Lift State Up` 比 React 原生方式更好用。
+
+1) 首先，Shadow Widget 有双源属性，更多过程处理转为对 duals 属性的读写，更简单，更直接，比如上面 `legend` 节点，用 `legend.duals['html.'] = sDesc` 直接改变界面文本，是外挂的，若在 `render` 函数中 `return <t.Legend>{sDesc}</t.Legend>` 则是过程处理，是内嵌的，不利于将子节点业务逻辑提升到父节点。
+
+2) 其次，双源属性的 listen 机制，也有助于 `Lift State Up`，比如上面 `inputComp.listen('value',onInputChange)`，在 `<input>` 输入框输入文本将驱动 `onInputChange` 调用，有关响应函数能轻松 `Lift Up`。
+
+3) 还有，idSetter 是函数，函数套函数很容易，很自然，如果下层节点需要处理复杂逻辑，里层嵌套定义另一个 idSetter 函数便可。我们可以把存在关联的上下多层节点的逻辑控制代码，都纳入外层节点的 idSetter 函数中。
+
+## 5. 在 idSetter 编码等效于在 render 函数编码
+
+React class 的 render 函数调用，最后返回 “本节点定义”，idSetter 在其中的作用，类似于如下代码：
+
+``` js
+function id__(comp) { // will call idSetter()
+  // comp.state.xxx = xxx;
+  // comp.$gui.comps = xxx;
+}
+
+class NewWTC extends T.BaseWTC_ {
+  // ...
+  render() {
+    id__(this);
+    var tagName = xxx, props = xxx, children = comp.$gui.comps;
+    return React.createElement(tagName,props,children);
+  }
+}
+```
+
+本处代码仅为概要示例，以伪码方式解释工作原理，`xxx` 表示省略过程的处理结果。其中嵌入的 `id__` 函数会调用前面介绍的 idSetter 函数，只要在 `idSetter` 函数中本节点属性更改，及针对子节点的更改被保存，`render()` 根据修改过的信息生成 React Element，就达到让 idSetter 中编码与 render 中编码等效的目标。
+
+与在 render 中编码等效的 idSetter 函数举例：
+
+``` js
+var fieldWidth = 0.9999;
+var sTitle = 'Temperature in Celsius';
+
+function fieldset__(value,oldValue) {
+  if (value <= 2) {
+    // ...
+    return;
+  }
+  
+  this.duals.width = fieldWidth;
+  utils.setChildren(this, [
+    <t.Legend key='legend'>{sTitle}</t.Legend> ,
+    <t.Input key='input' type='text' defaultValue='0' />
+  ]);
+}
+```
+
+尽管在 idSetter 的 `value > 2` 条件段编码，等效于在 render 中编程，大部分情况下我们不必这么做（也尽量避免这么做）。因为 Shadow Widget 的双源属性功能很强大，逻辑控制总能分解的，把控制分解到双源属性的 setter 函数，或侦听数据源变化来驱动特定动作，都能实现等效功能。这么细化分解，代码更易理解，更好维护。
+
+## 6. 过于 "过程化" 是个陷阱
+
+即便放弃 Shadow Widget 的可视化开发特性，只把它当作一个常规的 lib 库使用也是很有价值的，主要表现在两方面：
+
+1. Shadow Widget 在虚拟 DOM 之上对四种构件关系（即：顺序、包含、导航、层叠）做了封装，像面板、导航、选项构件、弹窗等常用构件已现成可用，构造 GUI 更加便利。
+
+2. JSX 与 idSetter 结合使用，既维持函数式编程风格，也克服原有 React 开发过于 "过程化" 的缺陷。
+
+过于 “过程化” 对于界面开发肯定是不好的，比如界面设计时，我们想摆一个文本框，再摆一个按钮，分解设计的思路是，文本输入变化了（`onChange`）该做什么，文本框输入完成（键入了回车键）该做什么，按钮被点击后该怎么响应。细化设计的思考过程，是从界面一个个可视的 Component 出发的，是按对象化方式做分析的。不管你的代码写成啥样，设计过程仍离不开一个个对象（如文本框、按钮等），越是高层设计越是如此。
+
+由于 React 偏爱函数式编程，加上 Flux 强化了数据流设计，容易引导大家一开始就从数据设计入手，着眼于数据如何分解、如何传递、如何驱动响应函数等。采用 Shadow Widget 后，产品开发会往对象化方向拉回一些。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-164}' top='{-96}' sty__='{{"background":"url(md/res/D170609-01/zicaibaofan.jpeg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+</div>

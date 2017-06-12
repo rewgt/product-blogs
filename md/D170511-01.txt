@@ -7,9 +7,9 @@ Shadow Widget 非正经入门（之二）
 
 &nbsp;
 
-## 找一个 JSX 替代品
+## 1. 找一个 JSX 替代品
 
-如上一篇 ["非正经入门（之一）"](http://localhost:3000/product-blogs/index.html?doc=D170509-02.txt) 所述，Shadow Widget 要克服 "JSX浆糊" 的不利影响，要找一个 JSX 替代品。
+如上一篇 ["非正经入门（之一）"](https://rewgt.github.io/product-blogs/index.html?doc=D170509-02.txt) 所述，Shadow Widget 要克服 "JSX浆糊" 的不利影响，要找一个 JSX 替代品。
 
 比如下面 JSX 表达方式：
 
@@ -35,7 +35,7 @@ Shadow Widget 非正经入门（之二）
 
 其中，`child1, child2` 是子节点定义，格式是 string 字串，或 array 数组。这种以 array 数组表达一个 Element 节点的格式叫 json-x 描述方式，与 JSX 完全等效。
 
-## 转义标签
+## 2. 转义标签
 
 为了方便在 html 网页文件中描述用户界面，我们定义 "转义标签" 的表达方式，如下：
 
@@ -54,7 +54,7 @@ Shadow Widget 非正经入门（之二）
 
 转义标签具有良好可读性，所以，它在 `*.html` 文件中可以直接书写。另外，这种格式对搜索引擎也友好，若依赖 JSX 定义界面，搜索引擎无法分析 html 文件中定义了什么信息。
 
-## 第一眼是妖孽，多半就是妖孽
+## 3. 第一眼是妖孽，多半就是妖孽
 
 React 支持服务侧渲染，这个特性似乎鼓励了其生态链上若干工具额外拓展服务侧功能。比如 react-router 中 Router 组件的 history 属性，既可以是 `browserHistory`，也可以是 `hashHistory`。对于前者，客户侧路由（即 URL 路径）决定服务侧如何实现，将两侧的设计捆绑起来的，后者 `hashHistory`（即 `#/some/path`）完全在客户侧自主决定，与服务侧无关。很显然，后一方式优于前者，前者违背了软件设计的 "关注点分离"（Separation of concerns, SOC）原则，并且在实践上，服务侧只有用 webpack-dev-server （加 `--history-api-fallback` 参数）才能玩得好，不只绑架用 JS 语言，而且绑架用特定工具。要命的是，react-router 官方居然推荐大家首选 `browserHistory`。
 
@@ -62,7 +62,7 @@ React 支持服务侧渲染，这个特性似乎鼓励了其生态链上若干�
 
 某种程度上 React 的服务侧渲染也多少沾点 "妖气"，有些人仅为了解决 SEO 优化用它，仔细想想有点本末倒置了。它的初始需求源于 google 之类的搜索引擎不认 JSX，因为 JSX 服务于编程，编程脚本原不该由搜索引擎关注的，该关注的只是一些静态文本。处理静态文本没必要拉上 React 一家子吧？但事实却是，我们非得套用一个客户侧编程风格，用 JS 开发的服务侧渲染工具，你说妖不妖？
 
-## 分离界面设计
+## 4. 分离界面设计
 
 在分离界面之前，我们还需建立路径索引机制。
 
@@ -92,7 +92,7 @@ main['.body.toolbar.p.btn1'] = {
 
 界面的转义标签在 `*.html` 文件中书写，界面元素的行为定义在 `*.js` 文件进行，如此，界面设计分离出来了，界面描述与相关元素的行为定义通过该元素的绝对路径实现关联。如上例，用 javascript 编写某元素的行为定义，也称 "投影定义"。
 
-## 表达复杂的 props 数据
+## 5. 表达复杂的 props 数据
 
 json-x 数据与转义标签都与 JSX 对等，但传递 `props` 数据有若干限制，比如转义标签不支持传递函数对象，json-x 可传函数对象，但也不鼓励（主要因为不规范）。函数定义应在投影类中定义，就像上面举例的 `$onClick` 函数，不通过转义标签的属性来传递，只在转义标签挂载时，到 `main` 下找到相应投影定义，然后捆绑相应的函数定义。
 
@@ -105,7 +105,7 @@ json-x 数据与转义标签都与 JSX 对等，但传递 `props` 数据有若�
 
 属性值用 `'{'` 与 `'}'` 括起来，表示它是 JSON 字串，用 `JSON.parse` 前要先删掉首尾两个花括号，如上面 `width` 值为 `JSON.parse('400')`。另外，对于 string 类型的属性值，可以直接传递（避开字串首尾是花括号的情形），不必按 JSON 字串的方式，如上面 `title` 属性。
 
-## idSetter 函数
+## 6. idSetter 函数
 
 实施界面与底层分离除了投影定义，还有一种指定 idSetter 函数的方式，若简单去理解，该方式是投影定义的一个变种，同样实现特定界面元素的行为定义的动态绑捆。
 
@@ -151,7 +151,27 @@ idSetter['btn1'] = function(value,oldValue) {
 
 使用 idSetter 函数的优点是，相应界面节点的绝对路径不必完整定义，即路径上各段不必显式给出 key 值，系统由 `$id__='xxx'` 属性值，自动找出 idSetter 函数。另一个优点是，编程风格更加函数式。
 
+## 7. 建立 W 树供随时节点定位
+
+Flux 框架要求节点间数据流向要遵守严格的约束，React 不惜牺牲编程便利性，刻意隐藏了内建的那颗虚拟 DOM 树，导致编程中跨节点调用非常不便，各节点都被一层黑墙包裹，无法探知周围都有哪些节点存在，好在 React 为这个黑墙开了一扇单向玻璃窗：`refs`，让父节点可以引用子节点，子节点引用不了父节点。克服引用不便的解药是引入 redux 那样的框架，把存在交叉影响的两个或多个节点中的数据，提升到一个公共区域去编程。
+
+既然 Shadow Widget 引入 MVVM 框架，在 Component 的 API 层面限制节点间互通已不合时宜，单向数据流应该在更高层面的设计去保证。所以，Shadow Widget 引入了 "W 树" 的概念，也就是，所有符合规格的 Component 节点（即源于 WTC 类创建的节点）都串接在一颗树上。树中各节点都有唯一 "路径" 标示，节点之间还可以用 "相对路径" 或 "绝对路径" 引用，比如：
+
+``` js
+  this.componentOf('//')   // get parent component
+  this.componentOf('//brother')   // brother node
+  this.componentOf('sub.child')   // child node
+  this.componentOf('./seg.child') // by relative path
+  this.componentOf('.body.top.toolbar') // by absolute path
+```
+
+有了 W 树设计，router 规划将变得简单明了，比方下图界面，把两个可切换的页 `Article` 与 `Talk` 装到一个导航面板（NavPanel）中，若想切换到 Article 页，按 `"/article"` 导航，切换另一页用 `"/talk"` 导航。
+
+![router](md/res/D170511-01/wiki.png)
+
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
-<div $=ScenePage key="auto0"></div>
-<div $=ScenePage key="auto1" no-show="1"></div>
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-158}' top='{-105}' sty__='{{"background":"url(md/res/D170511-01/wiki.png) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{146}'></div>
+</div>

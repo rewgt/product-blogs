@@ -9,7 +9,7 @@ Shadow Widget 是一个基于 React 的前端开发框架，聚焦于提供所�
 
 &nbsp;
 
-### React 观感
+## 1. React 观感
 
 使用 React 快两年了，**这个框架既简单，又很复杂**，如果把它看作纯粹的虚拟 DOM，确实够简单，但用作框架，虚拟 DOM 仅与真实 DOM 对应，单凭它做不了多少事的，React 是一只亮闪闪的金碗，得有其它食材、配料，才能让华丽的吃相配得上饥肠辘辘的胃袋。
 
@@ -19,7 +19,7 @@ Shadow Widget 是一个基于 React 的前端开发框架，聚焦于提供所�
 
 请不要误解，我并不抱怨 React 自身，而是它现有的技术栈与工具链，React 还是非常优秀的。但它的工具链尚在春秋战国，过于发散、杂乱、低效，而且，**在严谨普适的方法论与直观易用之间，还没找到最佳平衡方式**。
 
-### 我造了个轮子
+## 2. 我造了个轮子
 
 从去年 12 月中旬到现在，我花了 10 个月时间开发 <a target="_blank" href="https://github.com/rewgt/shadow-server">shadow-widget</a>，今天正式发布第一个版本。自始至终，我相信我在造轮子，也坚信我造的轮子比已有的轮子更有价值，因为上述种种不爽，基本克服了。
 
@@ -31,7 +31,7 @@ _ 从软件工具链角度看 Shadow Widget，它相当于集成 react、react-r
 
 更细节的内容请参考 <a target="_blank" href="https://rewgt.github.io/shadow-server/public/static/files/rewgt/doc/doc_zh/github_doc.html">Shadow Widget 用户手册</a>。
 
-### 框架的本质
+## 3. 框架的本质
 
 前端框架是另一层面的编程语言，探究框架的本质之前，不妨先看看编程语言的本质。
 
@@ -47,7 +47,7 @@ _ 从软件工具链角度看 Shadow Widget，它相当于集成 react、react-r
 
 评价 Shadow Widget 时，我也希望大家不要简单的以是不是 FP、合不合乎 FRP 等来区分优劣，应该回到原点，有了 “效率与人性化” 的需求，才派生出 <a target="_blank" href="https://en.wikipedia.org/wiki/Visual_programming_language">Visual programming</a>、<a target="_blank" href="https://en.wikipedia.org/wiki/Functional_programming">Functional programming</a>、<a target="_blank" href="https://en.wikipedia.org/wiki/Functional_reactive_programming">Functional reactive programming</a> 等理念，而不是反过来。
 
-### 分离 JSX
+## 4. 分离 JSX
 
 JSX 是 React 世界的幻术，它用来描述用户界面，看上去是静态的、声明式的，但，这是表象，本质上 JSX 是函数，而且是纯正的函数，比如：
 
@@ -88,7 +88,7 @@ main['.body.top.txt'] = {
 
 路径 `'.body.top.txt'` 指示前面用转义标签声明的界面，定义体中 `$onClick` 函数是 DOM 节点的 onclick 事件回调函数。这个就是 Shadow Widget 的 **“投影定义”**，除了事件函数，其它如 `getInitialState, componentDidMount` 等都可以在此定义。现在，您想到了什么？Delphi 的界面定义在 `*.dfm` 文件，函数实现在 `*.pas` 文件，Qt 的界面定义在 `*.ui`，实现在 `*.cpp`，类似的，我们的界面用转义标签在 `*.html` 编写，函数实现在 `*.js` 文件，我们成功让小两口离婚了。
 
-### 双源驱动
+## 5. 双源驱动
 
 React 渲染单向性主要体现在两方面，一是从父节点推导子节点，`props.children` 作为子层定义，逐级向下推导，二是各节点从传入的 `props.attr` 到 `state.attr`，再到 render 输出界面行为，也是单向推导的。
 
@@ -116,7 +116,7 @@ Shadow Widget 引入 **“双源属性”**（`duals.attr`）的概念，经封�
 
 > 类似 Angular 或 Vue 那样，在标签中可添加各种控制指令，让 Shadow Widget 做起来，相当简便，因为可计算属性的值是一条脚本表达式，脚本怎么写很灵活的。
 
-### 让转义标签支持 JS 表达式
+## 6. 让转义标签支持 JS 表达式
 
 可计算属性是转义标签中，预设的 **“一个可动态计算的 JS 脚本表达式”**，我拿同类工具作对比，说明它是干什么的。
 
@@ -124,7 +124,7 @@ Shadow Widget 引入 **“双源属性”**（`duals.attr`）的概念，经封�
 
 Shadow Widget 用一个微型解释器（MJI）构造沙盒运行环境，然后随时解析转义标签中的可计算表达式。它用 MJI 解释器应对变化，而不是固定预置若干指令，保证了延伸、定制能力，Vue 也支持自定义指令，但通过调用 API 注册后实现。
 
-### 可视化开发
+## 7. 可视化开发
 
 有了转义标签与双源驱动，用户界面设计就能以所见即所得的方式支持起来了，如下图，创建一个构件时，只需从右侧资源列表中拖入一个样板，样板用图片表示，一眼就能看出它是什么构件。
 
@@ -136,7 +136,7 @@ Shadow Widget 用一个微型解释器（MJI）构造沙盒运行环境，然后
 
 比如，我们想调大选中构件的字号，点击上图输入框 `"default-large-small"` 下方的 “Shift name” 按钮，当前构件立即把字号调大（通过 class 项改用 `"large-small-default"` 来实现）。
 
-### 跨越前端可视化设计的鸿沟
+## 8. 跨越前端可视化设计的鸿沟
 
 因工作关系，多年来我一直在寻找一款好用的 Web 页可视化设计器，结果很失望，没有一款有价值的。要么应用面限制在很窄范围，只对特定设计有意义，要么，如果面向通用可视化设计，全部是玩具，如果把具有基础可用性的工具打 80 分，当前那些做得最好的也只能打 30 分（Shadow Widget 不包含在内哟 `^v^`）。
 
@@ -172,7 +172,7 @@ React 系统中所有构件都只由两项参数决定，一是 React Class，�
 
 因为编辑针对 “数据面”，供定制调用的接口很规范，什么都能定制，各式各样的弹窗编辑器都能扩展，所以，其它可视编辑工具只有收窄适用面才做得好的情况，在本工具不会出现。
 
-### 适应技术分层与人员分工
+## 9. 适应技术分层与人员分工
 
 Shadow Widget 有两大设计目标，其一是前面已介绍的可视化开发，其二是适应前端开发中的技术分层与人员分工。
 
@@ -182,7 +182,7 @@ Shadow Widget 将前端开发划分为两大部分：构件（Widget）开发与
 
 技术分层与人员分工是一个组织高效运作的重要条件，不幸的是，现有 React 工具链对此缺少有效解决方案，Shadow Widget 奔这个痛点来了。
 
-### Shadow Widget 的容量
+## 10. Shadow Widget 的容量
 
 当前 Shadow Widget 版本经 minify 处理后，大小为 228 kb，作为参考，React.min.js 大小为 148 kb，可见，Shadow Widget 库不算太大，当然也不算小，相对于它提供的功能，这个库还算精简。采用 Shadow Widget 后就不必用 react-router、redux、immutable.js 了，另外，它还提供一套基于若干范式的可视构件库，是特有的。如果组合现有几个库来提供对等的功能，我相信，最终交付的 lib 会比 Shadow Widget 大不少。
 
@@ -192,5 +192,7 @@ Shadow Widget 容量较大，代码规模已是 React 的 2 倍，学习份量�
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
-<div $=ScenePage key="auto0"></div>
-<div $=ScenePage key="auto1" no-show="1"></div>
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-169}' top='{-109}' sty__='{{"background":"url(md/res/D170509-01/snake.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+</div>
