@@ -7,7 +7,7 @@ Shadow Widget 非正经入门（之四）
 
 &nbsp;
 
-## React Flux 框架
+## 1. React Flux 框架
 
 Facebook 官方为 React 提出了 flux 框架，也自己实现了一个 flux.js，尽管这个库设计得很差劲，但所有第三方为 React 开发的单向数据流方案，起点都是该库官方所提的 [Flux concepts](https://github.com/facebook/flux/tree/master/examples/flux-concepts)，下面是经典结构图：
 
@@ -33,7 +33,7 @@ Action 可简单理解为指令（或命令），由命令字 type 与命令参�
 
 当然，上面介绍非常简略，把核心机制讲明白，reflux、redux 让注册回调变事件也都用这个机制。当然，事件化回调的处理过程可能很复杂，比如 Dispatcher 还提供 `waitFor()` 等待一项或多项 Action 的接口，我们略去不细讲。
 
-## React 中的 MVC
+## 2. React 中的 MVC
 
 React 实现的虚拟 DOM 部分（即核心库 `react.js` 与 `react-dom.js`）是 MVC 中的 `"V"`，其 MVC 框架图如下：
 
@@ -43,7 +43,7 @@ React 实现的虚拟 DOM 部分（即核心库 `react.js` 与 `react-dom.js`）
 
 Flux、MVC、MVVM 这三者是对等的架构，我们不能直接将 Flux 框架往 MVC 上套。
 
-## 复杂环境对 MVC 框架的影响
+## 3. 复杂环境对 MVC 框架的影响
 
 在 React 中使用 MVC 主要缺陷是：当应用规模变大，`M, V, C` 之间依赖关系会变复杂。下图还不算太复杂，只用到 2 个 Module。
 
@@ -59,7 +59,7 @@ React 虚拟 DOM 对真实 DOM 做了一次抽像，附加 `props`、`state` 等
 
 React 生态链中有多种 Flux 实现，他们本质一样，表面差别不算大，通常几句话就能概括。reflux 采用多 store 方案，把用于集中分发的 Dispatcher 简化掉了，redux 采用单 store 方案，把分发 Action 后的处理分解给众多 Reducer 函数，也就是说，上图多个 Store 的功能，用 "单 Store + 众多 Reducer 函数" 替换。
 
-## Shadow Widget 与 Redux 走在两个方向上
+## 4. Shadow Widget 与 Redux 走在两个方向上
 
 Redux 最大优点是实施彻底函数式编程，最大缺点也是彻底函数式。它本身并未简化设计复杂性，只是转移复杂性，但按官方原生的 Flux 概念，我们是按对象方式理解一个个 Store 的，在设计时，处理 Store 与 View，以及与 Action 之间关系时，都按对象方式去思考的，现在把复杂性转移到众多 reducer 函数上，函数式思维不利于设计分解（相对对象化思维而言）。
 
@@ -67,7 +67,7 @@ Redux 之所以能盛行，与 React 自身限制有关。React 的虚拟 DOM �
 
 Shadow Widget 做的正相反，**尝试维持对象化思维习惯**，把 Store 与 ViewModel 合一（后面还有详细说明）以便减轻思考负担；通过建立 Widget 树，用 `this.componentOf()` 快速检索相关节点，以求方便的存取属性；再设计 duals 双源属性，建立一套能自动识别数据变化，并驱动单向数据流的机制。
 
-## Controller View 数据传递
+## 5. Controller View 数据传递
 
 我们研究一下 Controller View 与 Store 对接及与下级 View 的连接关系，取上图局部，放大讲解，如下：
 
@@ -81,7 +81,7 @@ Shadow Widget 做的正相反，**尝试维持对象化思维习惯**，把 Stor
 2. 对 Controller View 暴露 state 数据，有两种设计可选，一是让事件通知中带 state 数据，二是事件通知不带数据，要由 Controller View 主动到 Store 查询。结合 FRP 编程特点，第二个设计更好，如果数据连续多次更新，从 Store 读数据应合并为一次，取最新值。
 3. 何时通知 Controller View 刷新可能比较复杂，涉及条件组合，比如要 Action A 与 Action B 都发生后，才能触发事件通知。
 
-## 向 MVVM 演化
+## 6. 向 MVVM 演化
 
 我们换一个角度看 flux 框架，传递 Action 相当于 `"emit <Event>"`，将它弱化考虑，另外，Dispatcher 也可弱化，reflux 相比官方的 React flux，一个重要改进就是去掉 Dispatcher，工具复杂性因此降了不少。
 
@@ -125,7 +125,7 @@ Flux 要求的 Action 与 Dispatcher 已被各节点的 `duals.attr` 属性代�
 
 上图中，区分 View 与 ViewModel 的主要依据是：一个 Component 节点是否纳入编程，若纳入编程（定义投影定义，或 idSetter 函数）应视作 ViewModel，否则应视作 View，即使这个 View 使用一些 `trigger, $for, $if` 等控制指令也如此。
 
-## 对照 Vue 的 MVVM 举个例子
+## 7. 对照 Vue 的 MVVM 举个例子
 
 一个 Vue 的 MVVM 例子如下。
 
@@ -179,7 +179,7 @@ Shadow Widget 先考虑界面如何设计，确定界面元素后，再考虑相
 
 2. 数据分散，处理函数也分散定义，所以上面 Shadow Widget 的事件函数，要用 `this.componentOf()` 动态查找相关节点。Vue 集中定义数据，与数据相关的节点、动作、事件等函数也随之被锁定。这两种方式各有利弊，Vue 方式简单明了，Shadow Widget 更动态、更函数式，使用要复杂些，但应付各种变化自由些，功能更强些，比如各层节点动态增删、改换。
 
-## 函数如何作为数据进行传递
+## 8. 函数如何作为数据进行传递
 
 Shadow Widget 要支持界面可视化设计，可视设计的产出是界面元素的叠加物，当这种叠加物含有函数定义时，保存设计成果，或缓存设计结果（用于 undo 与 redo）将很成问题。因为函数定义要附带上下文才有意义，另外，函数定义体（即 JS 脚本）可以是任意字符，混在界面定义中，给结构化的解析设计结果也带来挑战。所以，Shadow Widget 限制可视设计过程中使用函数化数据，设计态的 props 数据传递不能有函数对象。
 
@@ -193,7 +193,7 @@ Shadow Widget 为这类需求提供两种解决方案。其一，使用 `W.$$onL
 
 其二，类似 `T.rewgt.DelayTimer` 注册一个自行开发的 WTC 类，然后界面的转义标签就可以用 `<div $=rewgt.DelayTimer>` 引用它。
 
-## 总结
+## 9. 总结
 
 我一直认为，开发语言、编程框架只是人类思维的辅助表达器，人脑观照世界，见山是山，见水是水，人要一个个去认，事物要一件件识别，探究复杂的事物，都是分层拆解的思路。具体到前端开发，客户需求高频变化，在并不纯粹的浏览器方框之中，过分强调纯粹的函数式编程肯定要误人子弟。
 
@@ -297,6 +297,9 @@ Controller View</pre>
     <div $=rewgt.SvgPanel key='auto41' sty__='{{"strokeColor":"#888","fillColor":"rgb(212, 255, 170)","backgroundSize":"100% 100%","transform":"","margin":"0px 0px 0px 0px","padding":"0px 0px 0px 0px","borderWidth":"0px 0px 0px 0px","left":"313px","top":"221px","width":"144px","height":"56px","backgroundImage":"url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjU2IiB2aWV3UG9ydD0iMCAwIDEwMCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIHN0cm9rZT0nIzg4OCcgZmlsbD0ncmdiKDIxMiwgMjU1LCAxNzApJyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1kYXNoYXJyYXk9J251bGwnPjxyZWN0IHg9JzAnIHk9JzAnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHJ4PSc1JyByeT0nNScvPjwvZz48L3N2Zz4=\")"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{311}' top='{314}' width='{144}' height='{56}' svg.cfg='{[0,[null,[]],"lib/res/rect.svg.json"]}'>
       <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>Model</pre>
     </div>
-    <div $=rewgt.SvgPanel key='auto47' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{347}' top='{251}' width='{65}' height='{88}' sty__='{{"strokeColor":"#666","fillColor":"#666"}}' svg.cfg='{[-1,["",0,2,2,0,5.5,0,0],"lib/res/arrows.svg.json"]}'></div>
+    <div $=rewgt.SvgPanel key='auto47' sty__='{{"strokeColor":"#666","fillColor":"#666"}}' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{347}' top='{251}' width='{65}' height='{88}' svg.cfg='{[-1,["",0,2,2,0,5.5,0,0],"lib/res/arrows.svg.json"]}'></div>
   </div>
+</div>
+<div $=ScenePage key='auto5' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-169}' top='{-102}' sty__='{{"background":"url(md/res/D170512-01/mvvm.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
 </div>

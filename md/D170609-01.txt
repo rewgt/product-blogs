@@ -1,9 +1,9 @@
-JSX 与 idSetter 在 Shadow Widget 中的妙用
+JSX 与 idSetter 在 Shadow Widget 中妙用
 ---------------
 
 &nbsp;
 
-Shadow Widget 提倡在可视设计器中开发用户界面，输出转义标签，而非 JSX。许多童鞋可能不知道 SW 同样支持用 JSX 设计界面，而且开发体验比原生 React 编程好出很多，本文就介绍这方面知识。
+Shadow Widget 提倡在可视设计器中开发用户界面，输出转义标签，而非 JSX。许多童鞋可能不知道 SW 同样支持用 JSX 设计界面，开发体验比原生 React 编程好出很多，本文就介绍这方面知识。
 
 &nbsp;
 
@@ -45,7 +45,7 @@ class MyButton extends React.Component {
 }
 ```
 
-WTC 要求这么定义（必须从已有的 WTC 类继承）：
+WTC 要求这么定义（必须从已有的 WTC 类继承，而且只能用 ES6+ 语法才做得到）：
 
 ``` js
 class MyButton_ extends T.Button_ {
@@ -112,8 +112,8 @@ commentNode.parentNode.removeChild(commentNode);
 比如：
 
 ``` js
-var AbstractButton = new MyButton_();  // MyButton is WTC
-var MyButton = AbstractButton._createClass();
+var AbstractButton = new MyButton_();         // MyButton_ is WTC
+var MyButton = AbstractButton._createClass(); // MyButton is React class
 var jsx = <MyButton>test</MyButton>;
 
 var MyButton2 = AbstractButton._createClass( {
@@ -196,8 +196,8 @@ idSetter 之所以全能，是因为系统在 React class 的 `componentWillMoun
 ``` js
 var React = require('react');
 var ReactDOM = require('react-dom');
-
 var W = require('shadow-widget');
+
 var main = W.$main, utils = W.$utils, ex = W.$ex;
 var idSetter = W.$idSetter, t = utils.getWTC('*');
 
@@ -274,7 +274,7 @@ Shadow Widget 的 `Lift State Up` 比 React 原生方式更好用。
 
 3) 还有，idSetter 是函数，函数套函数很容易，很自然，如果下层节点需要处理复杂逻辑，里层嵌套定义另一个 idSetter 函数便可。我们可以把存在关联的上下多层节点的逻辑控制代码，都纳入外层节点的 idSetter 函数中。
 
-## 5. 在 idSetter 编码等效于在 render 函数编码
+## 5. 在 idSetter 编码等效于在 render 函数中编码
 
 React class 的 render 函数调用，最后返回 “本节点定义”，idSetter 在其中的作用，类似于如下代码：
 
@@ -316,9 +316,11 @@ function fieldset__(value,oldValue) {
 }
 ```
 
+函数 `utils.setChildren()` 用来设置或更新子节点定义，需注意，各级子节点应指定 `key` 值，如果不指定，系统会认为你要创建新节点，而不是更新已存在节点。
+
 尽管在 idSetter 的 `value > 2` 条件段编码，等效于在 render 中编程，大部分情况下我们不必这么做（也尽量避免这么做）。因为 Shadow Widget 的双源属性功能很强大，逻辑控制总能分解的，把控制分解到双源属性的 setter 函数，或侦听数据源变化来驱动特定动作，都能实现等效功能。这么细化分解，代码更易理解，更好维护。
 
-## 6. 过于 "过程化" 是个陷阱
+## 6. 过于 "过程化" 是陷阱
 
 即便放弃 Shadow Widget 的可视化开发特性，只把它当作一个常规的 lib 库使用也是很有价值的，主要表现在两方面：
 

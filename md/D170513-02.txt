@@ -142,7 +142,7 @@ Markdown 在 Shadow Widget 中应用广泛，就像 markdown 能简化文章写�
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
 <div $=ScenePage key='auto0'></div>
 <div $=ScenePage key='auto1' no-show='1'>
-  <div $=P key='chart' width='{300}' height='{260}' $for='' data-dsn-sizes='bar1' left='{67}' top='{-163}' data-group.optid='pinp/blogs/step1'>
+  <div $=P key='chart' width='{300}' height='{260}' $for='' data-dsn-sizes='bar1' left='{148}' top='{-228}' data-group.optid='pinp/blogs/step1'>
     <span $=".pinp.charts.bar" key='bar1' $style='{width:duals(-1).width+"px",height:duals(-1).height+"px"}'>labels=One,Two,Three,Four,Five,Six,Seven
 title.text=
 legend.display=false
@@ -158,7 +158,7 @@ borderColor=
 65 59 80 81 56 55 40
 </span>
   </div>
-  <div $=NavPanel key='idx_table' klass='small-default-large p1-p2-p3-p0 visible-auto-hidden rb-rt-lt-no_shadow-lb col-reverse nowrap-default-wrap_reverse' width='{460}' height='{200}' $for='' left='{-413}' top='{-122}' data-group.optid='rewgt/shadow-slide/step1' data-prepost='5-3-15-3-1'>
+  <div $=NavPanel key='idx_table' klass='small-default-large p1-p2-p3-p0 visible-auto-hidden rb-rt-lt-no_shadow-lb col-reverse nowrap-default-wrap_reverse' width='{460}' height='{200}' $for='' left='{-448}' top='{-192}' data-group.optid='rewgt/shadow-slide/step1' data-prepost='5-3-15-3-1'>
     <pre $=MarkedDiv key='mark' no-show='1' klass='hidden-visible-auto' width='{0.9999}' min-height='{0}' height='{6}' $style='{backgroundColor:ex.__design__()?&#39;#eee&#39;:&#39;&#39;}'><pre $="MarkedDiv" title="item A">Page A
 </pre>
 
@@ -181,4 +181,5 @@ borderColor=
       </div>
     </div>
   </div>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-131}' top='{25}' sty__='{{"background":"url(md/res/D170513-02/markdown.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
 </div>

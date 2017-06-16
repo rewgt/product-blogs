@@ -180,5 +180,7 @@ Shadow Widget 所构筑的技术体系，将前端开发划分为两大部分：
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
-<div $=ScenePage key="auto0"></div>
-<div $=ScenePage key="auto1" no-show="1"></div>
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-189}' top='{-69}' sty__='{{"background":"url(md/res/D170602-01/fuck_ie.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+</div>

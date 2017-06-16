@@ -1,0 +1,142 @@
+Shadow Widget 最佳实践（下）
+----------
+
+&nbsp;
+
+本文介绍 "React + Shadow Widget" 应用于通用 GUI 开发的最佳实践，只聚焦于典型场景下典型的一种最优开发方法。分上、下两篇讲解，下篇讲述正交框架分析模式与常用调测方法。
+
+&nbsp;
+
+## 1. Controller View 与 View
+
+典型的 Flux 框架中，Store 与 View 之间的关系如下：
+
+![Controller View](md/res/D170615-01/mvc_controller.gif)
+
+本图摘自 `fluxxor.com` 的 [“What is Flux?”](http://fluxxor.com/what-is-flux.html) 一文，Store 中的数据传递给一个 Component，这个 Component 又通过 props 属性驱动多层 Component 子节点来展示界面。在这种数据传递关系中，多个 Component 都是 View，但从 Store 获得数据的那个 View 比较特殊，称为 "Controller View"。将 Controller View 与 View 对应到 Shadow Widget 的 MVVM 框架，Controller View 就是 VM（ViewModel），由 VM 驱动的子级 Component 就是 V (View)。
+
+然而现实编程并非上图那么简单，Controller View 的子节点，也即 View 节点，有时很复杂，其外部若只依赖从上级 props 传递下来的数据来驱动渲染，会很别扭。开发者常不由自主的放弃 “纯净” 的编程模式，突破限制，让 View 也从全局变量读数据，即，变相的把部分数据从 Store 分离出去，改用全局变量表达，或者干脆让 View 也直接从 Store 读数据。
+
+Shadow Widget 将问题简化，既然 Store 主要用于存贮数据，那就还原它的数据特性，作为数据，在哪儿定义关系不大，我们拿 Component 的属性存贮数据就好，将 Store 并入 Component 没有不可逾越的障碍，当然，前提是我们已设计了 “双源属性” 与 “W 树” 机制。然后，Controller View 及其下级多个 View，合起来成为一个 FB（Functionarity Block），在同一 FBN（Functionarity Block Namespace）下用 javascript 定义各节点行为。把相关节点的投影定义写一起，很大程度消除了节点间隔阂，因为，你能随时定义一个变量来传递数据。
+
+## 2. 正交框架分析模式
+
+接本文上篇的例子，假定我们在原功能基础上，再增加 “全局配置” 的功能，提供 3 个可选项：“自动选 Celsius 还是 Fahrenheit 格式”、“固定用 Celsius”、“固定用 Fahrenheit”。其中，第一个选项（自动选格式）依据浏览器特性推断国别信息，然后智能选择 Celsius 或 Fahrenheit。
+
+新增如下界面设计：
+
+![Config temperature](md/res/D170615-01/config.png)
+
+相应的，增加一个 Functionarity Block，JS 编码如下：
+
+``` js
+(function() { // functionarity block
+
+var configComp = null;
+
+idSetter['config'] = function(value,oldValue) {
+  // ...
+};
+})();
+```
+
+该 FB 的入口节点是 `configComp`。再接着细化设计，我们该将 `configComp` 定义挪到全局变量定义区，因为该节点在两个 FB 都用到。
+
+为方便讲述起见，我们把这两个 FB 分别称为 config 与 calculator，以 FB 分布为横轴，以 W 树为纵轴，W 树中的节点是层层串联的，绘制这两个 FB 的分布如下图：
+
+<div $=".body.auto1.fb_tree"></div>
+
+**当我们整体设计 GUI 时，应以 MVVM 方式思考**。结合本例，也就是规划 config 与 calculator 两个 “功能块”，确定各功能块的入口节点，以及它的上下层串接关系。**而处理各个功能块之间联动关系时，应切换到 Flux 单向数据流思考方式。**
+
+总结一下，整个 HTML 页面是一颗 DOM 树，是纵向的，在这颗树划分若干功能块的过程，是基于 MVVM 为主的设计过程，而处理各功能块之间横向联系，则以 FRP 思路为主导。这一纵一横的思考方式，我们称为 **“正交框架” 分析模式**。
+
+说明，Flux 是 FRP（Functional Reactiv Programming）开发思想的一种实现，对于 React 开发，上面所提 FRP 与 Flux 是等效的。
+
+接下来处理 FB 之间的功能交互，如果处理逻辑简单，不妨在相关 FB 中直接添加代码，如果逻辑复杂，不妨取相关 FB 的共有父节点作为入口节点，新设一个 FB 功能块。取共有父节点的主要作用是，该父节点从创建到 `unmount` 可以覆盖其内所有节点的生存周期，在它的 idSetter 函数中编程会方便一点。
+
+## 3. 挂载数据驱动调测
+
+在可视设计器中开发界面的过程，可能存在破坏式重构，比如你在某个 FB 的入口节点指定 `data` 属性值，然后它的子节点根据 `data` 取值自动生成子节点，如果你给定的 `data` 初始值格式不对，其下子节点会无法生成。所给初值不对可能因为设计变化了，你的 `data` 格式还没来得及调整。
+
+为了最大幅度减少上述破坏式重构带来错误，在设计界面时，我们建议用作驱动源头的数据初值应取 “空” 值，比如赋给 `null` 或 `[]` 之类的值。
+
+界面设计过程中，若想查看不同数据初值会驱动什么样的界面形态，不妨启用 `W.$dataSrc` 定义，比如前面例子界面缺省显示 Celsius 温度格式，因为 `'.body.calculator.field'` 节点的 `scale` 属性初值是 `'c'`，现在我们想检查 `scale='f'` 界面是否正确。按如下方式使用两行代码即可：
+
+``` js
+if (!window.W) { window.W = new Array(); W.$modules = [];}
+W.$modules.push( function(require,module,exports) {
+
+var W = require('shadow-widget');
+
+var dataSrc = W.$dataSrc = {};
+dataSrc['.body.calculator.field'] = { 'scale': 'f' };
+
+});
+```
+
+其中，`var dataSrc = W.$dataSrc = {}` 表示启用 `W.$dataSrc`，缺省是不启用的。另一句 `dataSrc['.body.calculator.field'] = { 'scale': 'f' }`，用来预定义哪个节点要附加哪些属性的初值。更详细信息请参考《手册》中 “3.5.2” 小节。
+
+上面代码可以写入独立的 js 文件，多个此类 js 文件可构造不同的调测场景，然后用 `<script>` 标签按需把某一个 js 文件导入到被测页面。
+
+## 4. 结合 pinp-blogs 的可视化设计
+
+我们的最佳实践推荐在 `pinp-blogs` 项目基础上开发程序，这比最基础的只在 shadow-widget 之上做开发，多了 [shadow-slide](https://github.com/rewgt/shadow-slide) 与 [pinp-blogs](https://github.com/rewgt/blogs) 两种库的支持。
+
+`pinp-blogs` 的链接表帮助设计者分解界面设计，比如设计界面时，先划分左边栏、上边栏、主内容区等若干 “功能块”，然后在多个胶片页中分别细化设计各块界面。这里所提 “功能块” 与本文前面所提 “功能块” 含义相同。功能块还可以分级，链接表的 root 列表指出首级 “功能块” 怎么拼装，链接表的次级定义则指示第二级、第三级等怎么拼装。细节请参考《PINP Blog 开发者手册》的 “2. 拼文编程快速入门” 一章。
+
+采用链接表有助于正交框架分析，梳理功能块如何划分，然后分而治之，在不同胶片页细化各功能块，将胶片页的 `noShow` 属性设为 `1`，它就用作模板了，只在设计态可见。
+
+## 5. 关于团队分工
+
+Shadow Widget 最佳实践还建议团队成员要按技能分工，至少有两个工种，其一是能运用他人已封装好的 WTC 类或库化 UI，进行 GUI 开发；其二是为他人封装 WTC 类或库化 UI。前者对技能要求不高，后者则要求深入掌握 React 与 Shadow Widget 知识。
+
+对于微型团队，也应按上述分工的思路规划您的产品开发，因为这两种分工的目标不同，前者着眼短期目标，尽快把产品做出来，把界面弄漂亮些，后者着眼中长期目标，用封装库提高开发复用率。即使是单人团队，同样需要分工，无非在时间上错开，一段时间承担一种角色，另一段时间换一个角色。
+
+Shadow Widget 当前的 WTC 类与界面库还不够丰富，但它的架子已搭好，起点不低。它的定制扩展能力出色，已通过上规模的产品 [`pinp-blogs`](https://github.com/rewgt/blogs) 检验，具备一定成熟度。我们有理由相信，这个产品会随着扩展库逐渐增多，发展会越来越好，前景越来越光明。
+
+&nbsp;
+<!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" sty__='{{"background":"url(md/res/D170615-01/thumbnail.jpg) no-repeat center","backgroundSize":"100% 100%"}}' no-show='' left='{-413}' top='{-161}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+  <div $=rewgt.DrawPaper key='fb_tree' data-group.optid='pinp/blogs/step0' klass='default-large-small S5' width='{375}' height='{232}' sty__='{{"zIndex":"-998"}}' offset-x='{-263}' offset-y='{-79}' left='{-50}' top='{-169}' def-id='_1497512826'>
+    <div $=rewgt.SvgPanel key='auto2' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{255}' top='{245}' width='{344}' height='{72}' sty__='{{"strokeColor":"#666","fillColor":"#666"}}' svg.cfg='{[-1,["",0,0,2,0,0,36,0],"lib/res/arrows.svg.json"]}' stroke='{2}'></div>
+    <div $=rewgt.SvgPanel key='auto3' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{268}' top='{84}' width='{65}' height='{220}' sty__='{{"strokeColor":"#666","fillColor":"#666"}}' svg.cfg='{[-1,["",0,0,2,0,6.25,0,0],"lib/res/arrows.svg.json"]}' stroke='{2}'></div>
+    <div $=rewgt.SvgPanel key='auto4' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{319}' top='{146}' width='{92}' height='{92}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto7' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{456}' top='{144}' width='{92}' height='{92}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto9' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{329}' top='{169}' width='{20}' height='{20}' stroke='{2}' sty__='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["1,1"],"lib/res/ellipse.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto10' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{331}' top='{199}' width='{20}' height='{20}' stroke='{2}' sty__='{{"strokeColor":"#666","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["1,1"],"lib/res/ellipse.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto12' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{356}' top='{172}' width='{48}' height='{16}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto13' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{356}' top='{200}' width='{48}' height='{16}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto14' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{311}' top='{259}' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>config</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto15' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{451}' top='{260}' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>calculator</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto16' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{279}' top='{75}' width='{68}' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>W 树</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto17' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{584}' top='{245}' width='{44}' sty__='{{"strokeColor":"rgba(0,0,0,0)","fillColor":"rgba(0,0,0,0)"}}' svg.cfg='{[0,[],"lib/res/rect2.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'>FB</pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto19' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{472}' top='{158}' width='{68}' height='{32}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+    <div $=rewgt.SvgPanel key='auto20' klass='nowrap-default-wrap_reverse items_center-end-stretch-default' left='{464}' top='{201}' width='{80}' height='{24}' sty__='{{"strokeColor":"#888","fillColor":"rgb(255, 255, 255)"}}' svg.cfg='{[0,["2,2"],"lib/res/rect.svg.json"]}'>
+      <pre $=MarkedDiv key='txt' width='{0.9999}' klass='default-large-small p1-p2-p3-p0 align_center-right-default'></pre>
+    </div>
+  </div>
+</div>

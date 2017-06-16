@@ -125,8 +125,7 @@ class Welcome extends React.Component {
 
 Shadow Widget 双源驱动的优点在于 **"让 DOM 节点功能回归本原"**，让 `props.xxx` 服务于生存周期中不变量，让 `duals.xxx` 服务于可变量，`state.xxx` 也服务于可变量，但倾向于用来表达自身节点的私有状态。
 
-[reflux](https://github.com/reflux/refluxjs) 为实现 React flux 机制，仿 component 接口设计了 store，如果没有上述 `props.xxx` 限制，我相信把 component 与 store 合一远优于现有设计。回归原本的设计好处是潜在的，因为倾斜的地基会导致上层
-建筑更加倾斜。
+[reflux](https://github.com/reflux/refluxjs) 为实现 React flux 机制，仿 component 接口设计了 store，如果没有上述 `props.xxx` 限制，我相信把 component 与 store 合一远优于现有设计。回归原本的设计好处是潜在的，因为倾斜的地基会导致上层建筑更加倾斜。
 
 ## 3. 数据侦听机制
 

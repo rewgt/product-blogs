@@ -7,7 +7,7 @@ Shadow Widget 非正经入门（之五）
 
 &nbsp;
 
-## 指令式界面设计
+## 1. 指令式界面设计
 
 Vue 与 Angular 都支持用控制指令描述界面，比如 Vue 中循环创建多个节点：
 
@@ -19,7 +19,7 @@ Vue 与 Angular 都支持用控制指令描述界面，比如 Vue 中循环创�
 
 Angular 也有类似 `v-for, v-if, v-else` 等控制指令，这些对于快速定义用户界面很有用，而 React 实现类似功能需借助 JS 编程，在便捷、直观方面不如 Angular 与 Vue。Shadow Widget 通过引入可计算属性与 MJI 解释器，弥补了 React 这项缺陷。
 
-## 节点引用
+## 2. 节点引用
 
 界面设计中常需要照着一个构件的样式，复制出多个，比如下面 `btn2` 按钮，保持与 `btn1` 一致的样式：
 
@@ -31,7 +31,7 @@ Angular 也有类似 `v-for, v-if, v-else` 等控制指令，这些对于快速�
 
 Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指定 WTC 类（如上面 `$=Button`）不冲突，因为表达引用时，字串值必是路径格式，首字母必是 `'.'` 或 `'/'`，而指示 WTC 类，首字母必定不是这两个。系统能自动识别这两种用法，用于路径引用时，我们习惯用引号括起来，而用作 WTC 类时，不加引号（不必担心，浏览器会自动把它看成字串的），这么书写理解起来很清晰。
 
-## 开启解释执行的上下文环境
+## 3. 开启解释执行的上下文环境
 
 控制指令是可计算属性中的一种，可计算属性是一种通过脚本表达式，借助 MJI (Mini Javascript Interpreter) 解释器动态解析计算的属性。比如：
 
@@ -51,7 +51,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 有关 `$for` 与 `$$for` 的差别，请参考《Shadow Widget 用户手册》中 "2.5.4 循环指令"。
 3. 用 `$for=''` 开启一个调用空间，如果当前没有解释运行环境，系统自动创建。
 
-## 栈式调用空间
+## 4. 栈式调用空间
 
 与常规编程语言类似，MJI 解释运行环境也有调用栈，一个 `$for` 循环要使用一套 `item, index, count` 变量，多个 `$for` 循环嵌套使用，就形成多套 `item, index, count` 变量的栈式结构。
 
@@ -78,7 +78,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 
 再往一层，则用 `-2` 指示，其它类推。
 
-## 举一个例子
+## 5. 举一个例子
 
 ``` html
 <div $=Panel key='top' height='{null}'>
@@ -109,7 +109,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 
 4. `$for` 下用来表达循环生成的节点，要显式指定 key 值，如本例的 `$key="if_"+index` 与 `$key="el_"+index`，这里 `index` 是循环序号，依次取值为 `0, 1, 2...`
 
-## 更多功能
+## 6. 更多功能
 
 本系列博文提供引导式入门介绍，过多细节略去不讲。关于指令式界面设计的内容，重要些的还有：
 
@@ -124,5 +124,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
-<div $=ScenePage key="auto0"></div>
-<div $=ScenePage key="auto1" no-show="1"></div>
+<div $=ScenePage key='auto0'></div>
+<div $=ScenePage key='auto1' no-show='1'>
+  <div $=".pinp.doc_info.thumb" no-show='' left='{-162}' top='{-83}' sty__='{{"background":"url(md/res/D170513-01/thumbnail.jpg) no-repeat center","backgroundSize":"100% 100%"}}' klass='default-large-small p1-p2-p3-p0 visible-auto-hidden default-align_center-right' data-group.optid='pinp/blogs/step4' width='{280}' height='{200}'></div>
+</div>
