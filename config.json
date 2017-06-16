@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_modify": 1497574427595,
+  "last_modify": 1497597101665,
   "user_name": "rewgt",
   "imported_repos": [
     [
@@ -19,7 +19,8 @@
       "modify_at": 1497574207984,
       "create_at": 1497485794900,
       "desc": "本文介绍 \"React + Shadow Widget\" 应用于通用 GUI 开发的最佳实践，只聚焦于典型场景下典型的一种最优开发方法。分上、下两篇讲解，下篇讲述正交框架分析模式与常用调测方法。",
-      "thumb": "md/res/D170615-01/thumbnail.jpg"
+      "thumb": "md/res/D170615-01/thumbnail.jpg",
+      "hidden": true
     },
     {
       "path": "md/D170612-01.txt",
@@ -29,7 +30,8 @@
       "modify_at": 1497574427595,
       "create_at": 1497272500060,
       "desc": "本文介绍 \"React + Shadow Widget\" 应用于通用 GUI 开发的最佳实践，只聚焦于典型场景下典型的一种最优开发方法。分上、下两篇讲解，上篇概述最佳实践，介绍功能块划分。",
-      "thumb": "md/res/D170612-01/thumbnail.jpg"
+      "thumb": "md/res/D170612-01/thumbnail.jpg",
+      "hidden": true
     },
     {
       "path": "md/D170609-01.txt",
@@ -40,7 +42,7 @@
       "create_at": 1496972922515,
       "desc": "Shadow Widget 提倡在可视设计器中开发用户界面，输出转义标签，而非 JSX。许多童鞋可能不知道 SW 同样支持用 JSX 设计界面，开发体验比原生 React 编程好出很多，本文就介绍这方面知识。",
       "thumb": "md/res/D170609-01/zicaibaofan.jpeg",
-      "hidden": false
+      "hidden": true
     },
     {
       "path": "md/D170602-01.txt",
