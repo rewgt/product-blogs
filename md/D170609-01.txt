@@ -150,9 +150,36 @@ var jsx = ( <t.Panel width={300}>
 
 ## 4. 用函数封装投影定义
 
-React 中的 `Functional Component` 是函数，表达一种处理过程，拿它用作 JSX 中的 tag，就像动词误作名词般 “闪着一丝诡异的光”。
+### 4.1 从 SFC 到 PRC，再到 idSetter
 
-在 Shadow Widget 中传递给 `props.$id__` 的 idSetter 也是函数，也像 `Functional Component` 那样把想表达的内容，用一个函数全包了，但 idSetter 并不诡异，它从属于某个 tag 标签。
+React 有两种纯渲染函数，其一是 `Stateless Functional Component`（SFC），如下：
+
+``` js
+function HelloMessage(props) {
+  return <div>Hello {props.name}</div>;
+}
+```
+
+还有一种 `Pure Render Component`（PRC），所谓 pure 是指，如果 `props` 及 `state` 不变，则 render 结果不变。比如：
+
+``` js
+import PureRender from 'react-addons-pure-render-mixin';
+
+class HelloComponent extends React.Component {
+  constructor(props) {
+    super(props);
+    this.shouldComponentUpdate = PureRender.shouldComponentUpdate.bind(this);
+  }
+  
+  render() {
+    return <div>Hello {this.props.name}</div>;
+  }
+}
+```
+
+SFC 似乎简单，易读易维护，也方便 `Lifting State Up`（后文有论述），但 SFC 比 PRC 缺少用 `shouldComponentUpdate()` 避免重复刷新，性能会受影响，另外，JSX 中把 SFC 的函数用作 tag，动词用作名词，闪着一丝诡异的光。
+
+Shadow Widget 开创性的设计 idSetter 机制，将 SFC 与 PRC 的优点结合起来了。一方面，你不需要非得用 class 类定义一个 Component，在层层嵌套的函数式风格中，不宜随便找个地方就定义 class，另外，idSetter 是函数，在一个函数中定义 Component 所有行为。
 
 比如：
 
@@ -175,13 +202,15 @@ function btn__(value,oldValue) {
 var jsx = <MyButton $id__={btn__}>test</MyButton>
 ```
 
-若用 `Functional Component` 方式编程，先定义的一个 `MakeButton` 函数，然后用 `<MakeButton>test</MakeButton>` 描述 UI 界面。`MakeButton()` 最终返回的 tag 是 `button`，还是 `span`，或是其它是动态变化的，但上述 `<MyButton $id__={btn__}>test</MyButton>` 却是明确指定 tag 是 `MyButton`，很直接，只不过 `$id__` 是全能函数。 
+若用 SFC 方式编程，先定义的一个 `MakeButton` 函数，然后用 `<MakeButton>test</MakeButton>` 描述 UI 界面。`MakeButton()` 最终返回的 tag 是 `button`，还是 `span`，或是其它是动态变化的。但这里 `<MyButton $id__={btn__}>test</MyButton>` 却是明确指定 tag 是 `MyButton`，很直接。 
 
-idSetter 之所以全能，是因为系统在 React class 的 `componentWillMount, componentDidMount, componentWillUnmount, render` 这 4 个函数中增加了对 idSetter 函数自动调用。其中，`value <= 2` 下的 3 个条件分支，分别等效于在 `componentWillMount, componentDidMount, componentWillUnmount` 中编码，其它条件（即 `value > 2`）相当于在 `render` 函数中编码。更多关于 idSetter 的知识，请参考手册 `3.3.4` 节与 `3.3.5` 节。
-
-设计用户界面时，手头的 tag 标签相当于食材，比如 “米饭”，给各 tag 指定各种属性来控制它的外观，这是最直接的设计方式。`Functional Component` 是 “紫菜包饭”，用函数形式包裹食材，idSetter 方式则相当于 “饭包紫菜包饭”，外观表现仍是 “米饭”，内层用紫菜包裹过。
+设计界面时，手头的 tag 标签相当于食材（比如 “米饭”），给各 tag 指定各种属性来控制它的外观，这是最直接的设计方式。`Stateless Functional Component` 是 “紫菜包饭”，用函数形式包裹食材，idSetter 方式则相当于 “饭包紫菜包饭”，外观表现仍是 “米饭”，内层用紫菜包裹过。
 
 ![饭包紫菜包饭](md/res/D170609-01/zicaibaofan.jpeg)
+
+### 4.2 idSetter 优点
+
+传递给 `$id__` 的函数是 idSetter，这是全能的，因为系统在基类的 `componentWillMount, componentDidMount, componentWillUnmount, render` 这 4 个函数中增加了对 idSetter 函数自动调用。其中，`value <= 2` 下的 3 个条件分支，分别等效于在 `componentWillMount, componentDidMount, componentWillUnmount` 中编码，其它条件（即 `value > 2`）相当于在 `render` 函数中编码。更多关于 idSetter 的知识，请参考手册 `3.3.4` 节与 `3.3.5` 节。
 
 这么处理有几个好处：
 
@@ -274,9 +303,9 @@ Shadow Widget 的 `Lift State Up` 比 React 原生方式更好用。
 
 3) 还有，idSetter 是函数，函数套函数很容易，很自然，如果下层节点需要处理复杂逻辑，里层嵌套定义另一个 idSetter 函数便可。我们可以把存在关联的上下多层节点的逻辑控制代码，都纳入外层节点的 idSetter 函数中。
 
-## 5. 在 idSetter 编码等效于在 render 函数中编码
+### 4.3 在 idSetter 编程的等效性
 
-React class 的 render 函数调用，最后返回 “本节点定义”，idSetter 在其中的作用，类似于如下代码：
+在 idSetter 函数中编写代码，等效于在 React class 的 `render` 函数中编码。调用 render 函数，最后返回 “本节点定义”，idSetter 函数实际在 `render()` 调用中被调起的，相当于在 `render()` 入口位置，先调用 idSetter 函数。等效代码如下所示：
 
 ``` js
 function id__(comp) { // will call idSetter()
@@ -320,17 +349,17 @@ function fieldset__(value,oldValue) {
 
 尽管在 idSetter 的 `value > 2` 条件段编码，等效于在 render 中编程，大部分情况下我们不必这么做（也尽量避免这么做）。因为 Shadow Widget 的双源属性功能很强大，逻辑控制总能分解的，把控制分解到双源属性的 setter 函数，或侦听数据源变化来驱动特定动作，都能实现等效功能。这么细化分解，代码更易理解，更好维护。
 
-## 6. 过于 "过程化" 是陷阱
+## 5. 高层设计过于 "函数式" 的陷阱
 
 即便放弃 Shadow Widget 的可视化开发特性，只把它当作一个常规的 lib 库使用也是很有价值的，主要表现在两方面：
 
 1. Shadow Widget 在虚拟 DOM 之上对四种构件关系（即：顺序、包含、导航、层叠）做了封装，像面板、导航、选项构件、弹窗等常用构件已现成可用，构造 GUI 更加便利。
 
-2. JSX 与 idSetter 结合使用，既维持函数式编程风格，也克服原有 React 开发过于 "过程化" 的缺陷。
+2. JSX 与 idSetter 结合使用，既维持函数式编程风格，也克服原有 React 开发过于 "函数式" 的缺陷。
 
-过于 “过程化” 对于界面开发肯定是不好的，比如界面设计时，我们想摆一个文本框，再摆一个按钮，分解设计的思路是，文本输入变化了（`onChange`）该做什么，文本框输入完成（键入了回车键）该做什么，按钮被点击后该怎么响应。细化设计的思考过程，是从界面一个个可视的 Component 出发的，是按对象化方式做分析的。不管你的代码写成啥样，设计过程仍离不开一个个对象（如文本框、按钮等），越是高层设计越是如此。
+过于 “函数式” 对于界面类开发肯定不好，比如 UI 设计时，我们想摆一个文本框，再摆一个按钮，分解设计的思路是，文本输入变化了（`onChange`）该做什么，文本框输入完成（键入了回车键）该做什么，按钮被点击后该怎么响应。细化设计的思考过程，是从界面一个个可视的 Component 出发的，是按对象化方式做分析的。不管你的代码写成啥样，设计过程仍离不开一个个对象（如文本框、按钮等），越是高层设计越是如此。
 
-由于 React 偏爱函数式编程，加上 Flux 强化了数据流设计，容易引导大家一开始就从数据设计入手，着眼于数据如何分解、如何传递、如何驱动响应函数等。采用 Shadow Widget 后，产品开发会往对象化方向拉回一些。
+由于 React 偏爱函数式编程，加上 Flux 强化了数据流设计，容易引导大家一开始就从数据设计入手，着眼于数据如何分解、如何传递、如何驱动响应函数等。采用 Shadow Widget 后，产品开发会往面向对象设计拉回一些，把握这一点就容易理解 Shadow Widget 的设计精髓了。
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
