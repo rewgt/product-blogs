@@ -160,7 +160,7 @@ Shadow Widget 已为各构件配置 `shouldComponentUpdate()` 与 `componentWill
 
 ## 5. 自动定义的双源属性
 
-双源属性一般要调用 `comp.defineDual()` 注册后才使用，但对于 DOM 节点内置属性是例外，如 `title, id, name` 等，这些属性只要节点在创建时，传入的 `props` 用到了，就会被系统自动注册为双源属性。《Shadow Widget 用户手册》的 "2.2.2 定义双源属性" 有这些属性的完整列表。
+双源属性一般要调用 `comp.defineDual()` 注册后才使用，但对于 DOM 节点内置属性是例外，如 `title, id, name` 等，这些属性只要节点在创建时，传入的 `props` 用到了，就会被系统自动注册为双源属性。
 
 另外，命名为 `data-*, aria-*, dual-*` 的属性，也自动注册为双源属性。
 

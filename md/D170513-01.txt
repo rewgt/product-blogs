@@ -11,7 +11,7 @@ Shadow Widget 非正经入门（之五）
 
 Vue 与 Angular 都支持用控制指令描述界面，比如 Vue 中循环创建多个节点：
 
-``` js
+``` html
 <div v-for="(index, item) in items">
   {{ index }} {{ item.message }}
 </div>
@@ -24,8 +24,7 @@ Angular 也有类似 `v-for, v-if, v-else` 等控制指令，这些对于快速�
 界面设计中常需要照着一个构件的样式，复制出多个，比如下面 `btn2` 按钮，保持与 `btn1` 一致的样式：
 
 ``` html
-  <span $=Button sty__='{{"background":"#eee","borderColor":"#ccc"}}' 
-        key='btn1'>Test 1</span>
+  <span $=Button key='btn1' sty__='background:#eee; border-color:#ccc'>Test 1</span>
   <span $='//btn1' key='btn2'>Test 2</span>
 ```
 
@@ -36,8 +35,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 控制指令是可计算属性中的一种，可计算属性是一种通过脚本表达式，借助 MJI (Mini Javascript Interpreter) 解释器动态解析计算的属性。比如：
 
 ``` html
-<span $=Button sty__='{{"background":"#eee","borderColor":"#ccc"}}' 
-      key='btn1'>Test 1</span>
+<span $=Button key='btn1' sty__='background:#eee; border-color:#ccc'>Test 1</span>
 <span $='//btn1' key='btn2' data='{{"desc":"Test 2"}}' 
       $html="duals.data.desc"></span>
 ```
@@ -47,8 +45,7 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 须注意，可计算属性只在开启 MJI 解释运行环境后才生效，否则它只是常规字串。解释运行环境按需动态开启，用完即自动销毁，有此环境 MJI 才能维护脚本计算的上下文运算关系。有下面几种开启解释运行环境的方式：
 
 1. 以 `$=path` 建立引用，如上面举例，如果引用位置尚不存在解释运行环境，系统将自动创建一个。
-2. 用 `$for=expr` 或 `$$for=expr` 指示将一层调用空间压入栈，系统自动检测当前是否有解释运行环境，若没有，也自动创建。   
-有关 `$for` 与 `$$for` 的差别，请参考《Shadow Widget 用户手册》中 "2.5.4 循环指令"。
+2. 用 `$for=expr` 或 `$$for=expr` 指示将一层调用空间压入栈，系统自动检测当前是否有解释运行环境，若没有，也自动创建。
 3. 用 `$for=''` 开启一个调用空间，如果当前没有解释运行环境，系统自动创建。
 
 ## 4. 栈式调用空间
@@ -58,22 +55,22 @@ Shadow Widget 的转义标签也用 `$=xx` 属性表达节点引用，这与指�
 在 MJI 解释运行环境中，按如下方式使用首层调用空间中的变量：
 
 ``` js
-  props(0).attr   duals(0).attr  state(0).attr
-  item(0)  index(0)  count(0)
+  props(0).attr   duals(0).attr   state(0).attr
+  item(0)   index(0)   count(0)
 ```
 
 或简写如下：
 
 ``` js
-  props.attr   duals.attr  state.attr
-  item  index  count
+  props.attr   duals.attr   state.attr
+  item   index   count
 ```
 
 如果读上一层栈中变量：
 
 ``` js
-  props(-1).attr   duals(-1).attr  state(-1).attr
-  item(-1)  index(-1)  count(-1)
+  props(-1).attr   duals(-1).attr   state(-1).attr
+  item(-1)   index(-1)   count(-1)
 ```
 
 再往一层，则用 `-2` 指示，其它类推。

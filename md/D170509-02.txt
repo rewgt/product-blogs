@@ -19,12 +19,12 @@ Shadow Widget 非正经入门（之一）
 
 ## 2. 快速入门建议
 
-1. 先学会用拼文写文档，注册一个 github 账号，把 rewgt/blogs 库 fork 到自己名下，然后用这个库写自己的博客，参见 [这份介绍](https://rewgt.github.io/blogs/)。   
+1. 先学会用拼文写文档，注册一个 github 账号，把 `rewgt/blogs` 库 fork 到自己名下，然后用这个库写自己的博客，参见 [这份介绍](https://rewgt.github.io/blogs/)。   
 &nbsp;   
 Shadow Widget 界面设计严重依赖两样东西，一是使用 markdown 语法，二是所见即所得的 UI 可视化设计器。这两项也是写文档随时用到的，比如撰写演示胶片时，胶片页编辑器就是 Shadow Widget 可视化设计器。会用拼文写文章，相当于 Shadow Widget 开发已入门三分之一了。   
 &nbsp;
 
-2. 系统化学习[《Shadow Widget 用户手册》](https://rewgt.github.io/shadow-server/public/static/files/rewgt/doc/doc_zh/github_doc.html)，包括基础篇、进阶篇、API手册、可视化设计使用手册。   
+2. 系统化学习[《Shadow Widget 用户手册》](https://rewgt.github.io/shadow-server/public/static/files/rewgt/doc/doc_zh/github_doc.html)，包括理论篇、基础篇、进阶篇、API手册、可视化设计使用手册。   
 &nbsp;   
 多数软件的用户手册仍是最佳入门教材，尽管网上常有人编写《XX系统最佳入门》之类的教材，让人误以为是捷径，其实，多数情况下，都没有阅读原配用户手册学得快。   
 &nbsp;   
@@ -81,13 +81,13 @@ Shadow Widget 通过一系列手段解决 "界面设计" 与底层分离的问�
 
 用 Vue 爽后还得痛，反映了这个领域做开发本来就这么复杂，入手门槛虽降，但晋升为专家的路上，该受的苦，该踩的坑一件不落。不过，Vue 也是优秀的前端框架，它与 React 对比，基本在对比指令式与函数式的优劣，作为工具本身，两个都很优秀，可指责的不多。平心而论，若从中长期收益考虑，**在 React 系统已引入 MVVM 框架的前提下**，选择 React 更好些，它出彩的地方是在虚拟 DOM 与 FRP 编程思维。不过，怎么说呢？vuex 也引入虚拟 DOM、store、action 机制，它们越长越像了。
 
-上面设置一个前提：在 React 引入 MVVM 结构，很重要，Shadow Widget 已经干了这事。React 官方宣称 React 符合 MVC 分层，并未宣称它是 MVVM，其工具链上主流工具延续了这一定位，事实上，受限于 "JSX浆糊" 等因素，想把它改造成 MVVM 还是要动一番手术的，不像 Vue 与 Angular，与 MVVM 天然走得近。
+上述结论要预设一个前提：在 React 引入 MVVM 结构，这很重要，Shadow Widget 已经干了这事。React 官方宣称 React 符合 MVC 分层，并未宣称它是 MVVM，其工具链上主流工具延续了这一定位，事实上，受限于 "JSX浆糊" 等因素，想把它改造成 MVVM 还是要动一番手术的，不像 Vue 与 Angular，与 MVVM 天然走得近。
 
 我扼要概括一下 Shadow Widget 是如何改造的？
 
 首先确定目标，让 React 适合于可视化开发及人员分层，人员分层是将开发人员分两拨，一拨低要求，实习生就能做，主要使用现成构件样板组装 APP，其门槛只比用 jQuery 做开发稍高一点，另一拨高要求，能开发新构件并封装成样板，什么都得学。
 
-其次，设计转义标签、json-x 描述、投影定义等机制，让界面与底层分离，实现 MVVM 框架，相关细节请看《Shadow Widget 用户手册》。最后，引入双源属性、可计算属性等概念，把 React 的函数式编程往指令式上拉回一点，或者更准确一点说，在界面设计，即 "V" 层，采用指令式风格，而 "VM" 与 "M" 层仍沿用原先的函数式风格。
+其次，设计转义标签、json-x 描述、投影定义等机制，让界面与底层分离，实现 MVVM 框架，相关细节请看《Shadow Widget 用户手册》。最后，引入双源属性、可计算属性等概念，把 React 的函数式编程往指令式方向上拉回一点，或者更准确一点说，在界面设计，即 "V" 层，采用指令式风格，而 "VM" 与 "M" 层仍沿用原先的函数式风格。
 
 ## 4. Shadow Widget 渊源
 
@@ -98,7 +98,7 @@ Shadow Widget 由 PINP.ME 团队研发，PINP.ME 一直专注于提供以 HTML5 
 
 &nbsp;
 
-PINP 改版最大变化是，层次划分更清晰、开发方法更先进，推出的版本也更稳定了。另外，在底层把 shadow-widget、shadow-slide 专门独立出来，让 shadow-widget 自成一个体系，不只 PINP 工具能用，也尝试让 "React + shadow-widget" 成为一个易用的前端框架。
+PINP 改版最大变化是，层次划分更清晰、开发方法更先进，推出的版本也更稳定了。另外，在底层把 shadow-widget、shadow-slide 专门独立出来，让 shadow-widget 自成一个体系，不只 PINP 工具能用，也尝试让 "React + shadow-widget" 成为一个简单易用的前端框架。
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
