@@ -3,7 +3,7 @@
 
 &nbsp;
 
-好吧，我承认我是标题党。React 明明如日中天，把它与 Vue 倒过来，给 Vue 加点东西或可与 React 抗衡。不过，这两年 Vue 干的正是这事，不断加东西，不断优化，按它现有发展速度超越 React 或在情理之中。如果我有一项技术，能让 React 克服短板、维持长板，Vue 再怎么追都赶不上呢？
+我承认我是标题党。React 明明如日中天，把它与 Vue 倒过来，给 Vue 加点东西或可与 React 抗衡。不过，这两年 Vue 干的正是这事，不断优化、加东西，按现有速度超越 React 或在情理之中。如果我有一项技术，能让 React 克服短板、维持长板，Vue 再也追不上呢？
 
 这项技术就是 Shadow Widget，开源的，[入口在这里（github/rewgt）](https://github.com/rewgt/shadow-server)。
 
