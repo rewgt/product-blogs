@@ -9,7 +9,7 @@ Shadow Widget 最佳实践（上）
 
 ## 1. 最佳实践概述
 
-按遵循 ES5 与 ES6+ 区分，Shadow Widget 支持两种开发方式，一是用 ES5 做开发，二是搭建 Babel 转译环境，用 ES6+ 做开发，之所以划分两大类，因为它们之间差别不仅仅是 javascript 代码转译，而是涉及在哪个层面定义 React class，进而与源码在上层还是下层维护，及如何与他人协作等相关。
+按遵循 ES5 与 ES6+ 区分，Shadow Widget 支持两种开发方式，一是用 ES5 做开发，二是搭建 Babel 转译环境用 ES6+ 做开发，之所以划分两大类，因为它们之间差别不仅仅是 javascript 代码转译，而是涉及在哪个层面定义 React Class，进而与源码在上层还是下层维护，以及与他人如何协作等相关。
 
 如本系列博客《JSX 与 idSetter 在 Shadow Widget 中的妙用》一文介绍，用 ES5 定义 React class 的方式是：
 
@@ -62,9 +62,9 @@ var AbstractButton = new MyButton_();  // MyButton_ is WTC
 var MyButton = AbstractButton._createClass(); // MyButton is React class
 ```
 
-由于 ES6+ 语法能兼容 ES5，所以，即使采用 ES6+ 开发方式，前一种 ES5 的 React class 定义方法仍适用。但，自定义扩展一个 WTC 类必须用 ES6+，象上面 `"class MyButton_ extends T.Button_"` 语法。
+由于 ES6+ 语法能兼容 ES5，所以，即使采用 ES6+ 开发方式，前一种 ES5 的 React class 定义方法仍然适用。但，自定义扩展一个 WTC 类必须用 ES6+，就象上面 `"class MyButton_ extends T.Button_"` 语法，只能在 ES6+ 下书写。
 
-考虑到用 ES5 编程不必搭建 Babel 开发环境，ES5 能被 ES6+ 兼容，向 ES6+ 迁移只是整体平移，不必改源码。加上 Shadow Widget 已提供够用的基础 WTC 类（这意味着我们并不迫切依赖于用 ES6+ 扩展 WTC），所以，我们将 Shadow Widget 最佳实践确定为：**用 ES5 实施主体开发**。
+考虑到用 ES5 编程不必搭建 Babel 开发环境，ES5 能被 ES6+ 兼容，向 ES6+ 迁移只是整体平移，不必改源码。加上 Shadow Widget 及第 3 方类库，已提供够用的基础 WTC 类（这意味着我们并不迫切依赖于用 ES6+ 扩展 WTC），所以，我们将 Shadow Widget 最佳实践确定为：**用 ES5 实施主体开发**。
 
 Shadow Widget 最佳开发实践的大致操作过程如下：
 
@@ -72,7 +72,7 @@ Shadow Widget 最佳开发实践的大致操作过程如下：
 应选择一个合适的 "网页样板" 来创建，Shadow Widget 是一个可继承重用的 lib 库体系，最基础的是 [`shadow-widget`](https://github.com/rewgt/shadow-server) 库自身，其上还有 [`shadow-slide`](https://github.com/rewgt/shadow-slide)，[`pinp-blogs`](https://github.com/rewgt/blogs) 等扩展库，各个扩展项目一般会提供它本层的网页样板（通常放在 `<project>/output/shared/pages/` 目录下）。
 
 2. 在创建的网页文件追加 `<script src='your_file.js'></script>` 代码   
-然后在 `your_file.js` 文件编写 ES5 代码，请参考《手册》中 “2.2.1 投影式继承” 一节。
+然后在 `your_file.js` 文件编写 ES5 代码。
 
 3. 使用 Shadow Widget 的可视设计器设计用户界面   
 用户界面设计的结果以转义标签的形式，保存在你的 `"*.html"` 网页文件中，然后你可以在 `your_file.js` 同步编写 JS 代码。
@@ -80,7 +80,7 @@ Shadow Widget 最佳开发实践的大致操作过程如下：
 4. 完成开发与测试后，把相关的 `html, js, css` 等文件上传发布到服务器发布   
 因为不必做 ES6 转译，发布操作很直接。或许您要调整 `js, css, png` 等文件位置，或许您需 minify 某个 JS 文件，这些都是前端开发的基本技能，不是 Shadow Widget 特有的。
 
-最佳实践还建议多用 idSetter 函数定义各 component 的行为，不用（或少用）在 `main[path]` 定义投影类的方式，因为 idSetter 的函数式风格，让 MVVM 与 Flux 两种框架的交汇点处理起来更便利。更多关于 idSetter 的知识，请参考《手册》的 “3.4.4 idSetter 预定义” 一节。
+最佳实践还建议多用 idSetter 函数定义各 component 的行为，不用（或少用）在 `main[path]` 定义投影类的方式，因为 idSetter 的函数式风格，让 MVVM 与 Flux 两种框架的交汇点处理起来更便利。
 
 接下来，在展开细节介绍之前，我们先梳理一下 Shadow Widget 技术体系的几个特色概念。
 
@@ -88,19 +88,19 @@ Shadow Widget 最佳开发实践的大致操作过程如下：
 
 `p-state` 与 `v-state` 是 uglee 在 [《少妇白洁系列之 React StateUp Pattern, Explained》](https://segmentfault.com/a/1190000008592692) 一文提出的概念，我们借用过来解释 React 中的数据流转模式。`p-state` 指 **persistent state**，是生命周期超过组件本身的 state 数据，即使组件从 DOM 上销毁，这些数据仍然需要在组件外部持久化。`v-state` 指 **volatile state**，是生命周期和组件一样的 state 数据，如果组件从 DOM 上销毁，这些 state 将一起销毁。
 
-结合 Flux 框架，`v-state` 就是 `comp.props.xxx` 与 `comp.state.xxx` 数据，`p-state` 就是 store 里的数据，这么说虽有失严谨，但大致如此。如果未用 Flux 框架，对 `comp` 的 `render()` 过程产生影响的所有数据中，全局变量或其它节点（包括上级节点）中的属性，都算 `p-state`。
+结合 Flux 框架，`v-state` 就是 `comp.props.xxx` 与 `comp.state.xxx` 数据，`p-state` 就是 store 里的数据，这么说虽有失严谨，但大致如此。如果未使用 Flux 框架，对 `comp` 的 `render()` 过程产生影响的所有数据中，全局变量或其它节点（包括上级节点）中的属性，都算当前节点的 `p-state`。
 
-不过，**`v-state` 与 `p-state` 划分是静态相对而言的**。比如，初始设计界面只要求显示摄氏度（Celsius）格式的温度值，然后觉得要适应全球化应用，摄氏度与华氏度（Fahrenheit）都得显示，再往后发现，Celsius 与 Fahrenheit 并列显示不够友好，就改成动态可配置，取国别信息后自动设成两者中一个。这种设计变迁中，“当前温度格式” 与 “并列显示或只显示一种” 的配置经常在 `v-state` 与 `p-state` 之间变化。
+不过，**`v-state` 与 `p-state` 划分是静态的，相对而言的**。比如，初始设计界面只要求显示摄氏度（Celsius）格式的温度值，然后觉得要适应全球化应用，摄氏度与华氏度（Fahrenheit）都得显示，再往后发现，Celsius 与 Fahrenheit 并列显示不够友好，就改成动态可配置，取国别信息后自动设成两者中一个。这种设计变迁中，“当前温度格式” 与 “并列显示或只显示一种” 的配置数据经常在 `v-state` 与 `p-state` 之间变迁。
 
 React 工具链上几个 Flux 框架主要区别在于，如何定位与使用 `p-state`，它们对 `v-state` 使用基本一致，我们拿 reflux、redux、shadow-widget 三者分别举例。
 
-Reflux 采用多 store，其 store 设计与 component 很接近，可以这么简单理解：既然跨 Component 存在数据交互，父子关系可以用 `props` 传递，非父子关系传不了，怎么办呢？那就设立第三方实体（也就是 store）处理此事。Redux 采用单 store，把它理解成一大坨全局变量就好，它以 action 设计为提纲，围绕 action 组织 reducer 函数，而 Reflux 中提纲挈领的东西则是 store 中的数据，围绕数据组织 action 定义。若对比这两者，Reflux 方式更易理解，需求分解与设计展开过程更人性化，不过，Reflux 没有突破 React 固有限制，因为多 store 模式，实践中大家经常会纠结一项数据该放在 component 中，还是放 store 中呢。如前所述，一项数据是否为 `v-state` 是相对的，产品功能叠代后，数据经常要从 `v-state` 提升到 `p-state`，或者，若原设计偏于宽泛，还需将 `p-state` 降回 `v-state`。Reflux 困境在于 Store 设计与 Component 不对称，顺应来回变迁的成本较高。
+Reflux 采用多 store，其 store 设计与 component 很接近，可以这么简单理解：既然跨 Component 存在数据交互，父子关系可以用 `props` 传递，非父子关系传不了，怎么办呢？那就设立第三方实体（也就是 store）处理此事。Redux 采用单 store，把它理解成一大坨全局变量就好，它以 action 设计为提纲，围绕 action 组织 reducer 函数，而 Reflux 中提纲挈领的东西则是 store 中的数据，围绕数据组织 action 定义。若对比这两者，Reflux 方式更易理解，需求分解与设计展开过程更人性化，不过，Reflux 没有突破 React 固有限制，因为多 store 模式，实践中大家经常很纠结某项数据该放在 component 中，还是放在 store 中呢？如前所述，一项数据是否为 `v-state` 是相对的，产品功能叠代后，数据经常要从 `v-state` 提升到 `p-state`，或者，若原设计偏于宽泛，还需将 `p-state` 降回 `v-state`。Reflux 困境在于 Store 设计与 Component 不对称，顺应来回变迁的成本较高。
 
 Shadow Widget 也是多 Store，Component 自身就是 store，这克服了 Reflux 主要不足。另外结合 MVVM 架构的可视化特点，Shadow Widget 还克服了 redux 主要不足。
 
-## 3. 几种数据提升方式
+## 3. 几种 Lift State Up 方式
 
-Shadow Widget 介绍了一种 “逆向同步 & 单向依赖” 的机制，见《手册》的 “2.5.1” 小节。在如下节点树中，nodeE 要使用 nodeC 中的数据，但 nodeC 生存周期与 nodeE 并不一致，所以，引入一种机制，在它们共同的父节点 nodeA 设置一个属性，nodeC 中的该数据能自动同步到 nodeA 中，然后让 nodeE 只依赖 nodeA 中的数据，只要 NodeE 还存在，父节点 nodeD 与 nodeA 必然存活着。
+Shadow Widget 介绍了一种 “逆向同步 & 单向依赖” 的机制，在如下节点树中，nodeE 要使用 nodeC 中的数据，但 nodeC 生存周期与 nodeE 并不一致，所以，引入一种机制，在它们共同的父节点 nodeA 设置一个属性（比如 `attrX`），nodeC 中的该数据能自动同步到 nodeA 中，然后让 nodeE 只依赖 nodeA 中的数据（比如 `attrX`），只要 NodeE 还存活，父节点 nodeD 与 nodeA 必然存活。
 
 ```
   nodeA
@@ -112,12 +112,12 @@ Shadow Widget 介绍了一种 “逆向同步 & 单向依赖” 的机制，见�
 
 React 官方介绍了一种 ["Lifting State Up"](https://facebook.github.io/react/docs/lifting-state-up.html) 方法，借助函数式编程的特点，把控制界面显示效果的变量，从子节点提升到父节点，子节点的事件函数改在父节点定义，就达到 `Lift State Up` 的效果。
 
-既然提升 state 能突破 React 对数据传递的限制，那么，极端一点，能否把所有用到的数据都改成全局变量呢？答案当然可以，不过缺少意义，这么做，无非将分散在各节点的逻辑，转移到处理一堆全局变量而己，设计过程本该分解，而非合并。可视节点分层分布本是天然的功能划分方式，放弃它改换门庭无疑把事情搞复杂了。
+既然提升 state 能突破 React 对数据传递的限制，那么，极端一点，能否把所有用到的数据都改成全局变量呢？答案当然可以，不过缺少意义，这么做，无非将分散在各节点的逻辑，转移到处理一堆全局变量而己，设计过程本该分解，而非合并。可视节点分层分布本是天然的功能划分方式，放弃它改换门庭无疑把事情搞复杂了，可恶的 Redux 就是这么干的。
 
 从本质上看，Redux 把 state 数据全局化了（成为单 store），但它又以 action 主导切割数据，你并不能直接存取全局 store，而是改由 action 驱动各个 reducer，各 reducer 只孤立处理它自身可见的 state。由此我有两点推论：
 
-1. 若弃用界面现成的分解方式，改建另一套体系并不明智   
-就像描述双人博击，最直接的方式是先区分场上谁是谁，谁出击，谁防守，出击者挥拳，防守者缩头躲避。Redux 行事风格是先设计 “挥拳”、“缩头” 之类的 action，然后分解实施这些 action，来驱动各种 state 变化。该模式之所以行得通，不是 Redux 有多好，而是人类大脑太奇妙，编程中除了脑补产品应用场景，偶尔还会插帧处理俊男靓女图。
+1. 弃用界面现成的分解方式，改建另一套体系并不明智   
+就像描述双人博击，最直接的方式是先区分场上谁是谁，谁出击，谁防守，出击者挥拳，防守者缩头躲避。Redux 行事风格是先设计 “挥拳”、“缩头” 之类的 action，然后分解实施这些 action，来驱动各种 state 变化。该模式之所以行得通，不是 Redux 有多好，而是人脑太奇妙，编程中除了脑补产品应用场景，偶尔还会插帧处理俊男靓女图片 :)
 
 2. 数据隔离是必需的，否则无法应对大规模产品开发   
 后文我们将介绍最佳实践中的数据隔离方法，以功能场景为依据。
@@ -252,9 +252,9 @@ main.$onLoad.push( function() {
 });
 ```
 
-头部用来定义若干全局变量，然后定义功能块，功能块可能有多个，上面举例的判断温度是否超沸点，比较简单，定义一个功能块就够了，最后定义 `main.$onLoad` 初始化函数。
+头部用来定义若干全局变量，然后定义功能块，功能块可能有多个，上面举例的判断温度是否超沸点，比较简单，定义一个功能块就够了，最后定义 `main.$onLoad` 全局初始化函数。
 
-之所以将一个功能块用函数体包裹，主要为了构造独立的命名空间（Namespace），比如前面举例的代码：
+之所以将一个功能块用一个函数包裹，主要为了构造独立的命名空间（Namespace），比如前面举例的代码：
 
 ``` js
 (function() { // functionarity block
@@ -273,7 +273,7 @@ idSetter['calculator'] = function(value,oldValue) {
 
 ### 4.3 功能块入口节点
 
-一个功能块的入口节点是特殊节点，它的生存周期反映了功能块的生存周期。它的各层子节点若还存在（即在 unmount 之前），入口节点必然也存在。因为入口节点的生存期能完整覆盖它各级子节点的生存期，我们一般在入口节点定义 idSetter 函数，承担本功能块的主体逻辑处理。
+一个功能块的入口节点是特殊节点，它的生存周期反映了功能块的生存周期。它的各层子节点若还存在（即在 unmount 之前），入口节点必然存在。因为入口节点的生存期能完整覆盖它各级子节点的生存期，所以，我们一般在入口节点定义 idSetter 函数，承担本功能块的主体逻辑处理。
 
 上例的功能块定义了如下节点树：
 
@@ -303,21 +303,21 @@ idSetter['calculator'] = function(value,oldValue) {
 
 界面设计时，不妨多用下述技巧：
 
-1. 用 `$for=''` 或 `$$for=''` 开启一层 callspace，方便其下节点的可计算属性用 `duals.attr` 引用数据。
+1. 以 `$for=''` 或 `$$for=''` 开启一层 callspace，方便其下节点的可计算属性用 `duals.attr` 引用数据。
 
-2. 用 `trigger` 或 `$trigger` 同步数据
+2. 善用 `$trigger` 同步数据
 
-3. 如果节点层次复杂，不妨使用导航面板（`NavPanel` 与 `NavDiv`），`"./xx.xx"` 相对路径方式让节点定位更方便
+3. 如果节点层次复杂，不妨采用导航面板（`NavPanel` 与 `NavDiv`），用 `"./xx.xx"` 相对路径方式让节点定位更方便
 
 &nbsp;
 
 3) 善用变量共享机制
 
-若按 React 原始开发方式编码，不借助任何 Flux 框架工具，大家肯定觉得编程很不方便，因为各节点除了能往子节点单向传递 `props` 外，与其它节点的交互几乎隔了一道黑幕。然而，不幸的是，React 几个主流的 Flux 工具，均没有妥善解决几个主要问题，上面提到的 Reflux、Redux 如此，React 官方的 `react-flux` 更难用。
+若按 React 原始开发方式编码，不借助任何 Flux 框架工具，大家肯定觉得编程很不方便，因为各节点除了能往子节点单向传递 `props` 外，与其它节点的交互几乎隔了一道黑幕。然而，不幸的是，React 几个主流的 Flux 工具，均没有妥善解决几个主要问题，上面提到的 Reflux、Redux 均如此，React 官方的 `react-flux` 更难用。
 
 相对而言，Shadow Widget 的解决方案好很多，一方面，在 Component 节点引入 “双源属性”，功能强大，能让基于过程组装的 UI 渲染，过渡到 **以属性变化来驱动渲染**，即：除了 “功能块” 的入口节点需集中编写控制逻辑，其它节点的编程，基本简化为定制若干 duals 函数（用 `defineDual()` 注册）。另一方面，Shadow Widget 借助 Functionarity Block 抽象层来重组数据，**以功能远近作聚合依据**，明显比以 Action 驱动的 Reducer 分割要高明。
 
-从本质上讲，拎取 “功能块抽象层” 也是 `Lift State Up` 的一种手段，限制更少，结合于 JS 编程也更自然。虚拟 DOM 树中的各 component 节点有隔离措拖，不能互相识别，但函数编程没什么限制，比如上面例子，`selfComp = this` 把一个 Component 赋给 “功能块空间” 的变量 `selfComp`，同在一个功能块的其它函数都能用它了。
+从本质上讲，拎取 “功能块抽象层” 也是 `Lift State Up` 的一种手段，限制更少，结合于 JS 编程也更自然。虚拟 DOM 树中的各 component 节点有隔离措拖，不能互相识别，但函数编程没什么限制，比如上面例子，`selfComp = this` 把一个 Component 赋给 “功能块空间” 的变量 `selfComp` 后，同在一个功能块的其它函数都能使用它了。
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->

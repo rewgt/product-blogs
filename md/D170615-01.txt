@@ -13,15 +13,15 @@ Shadow Widget 最佳实践（下）
 
 ![Controller View](md/res/D170615-01/mvc_controller.gif)
 
-本图摘自 `fluxxor.com` 的 [“What is Flux?”](http://fluxxor.com/what-is-flux.html) 一文，Store 中的数据传递给一个 Component，这个 Component 又通过 props 属性驱动多层 Component 子节点来展示界面。在这种数据传递关系中，多个 Component 都是 View，但从 Store 获得数据的那个 View 比较特殊，称为 "Controller View"。将 Controller View 与 View 对应到 Shadow Widget 的 MVVM 框架，Controller View 就是 VM（ViewModel），由 VM 驱动的子级 Component 就是 V (View)。
+本图摘自 `fluxxor.com` 的 [“What is Flux?”](http://fluxxor.com/what-is-flux.html) 一文，Store 中的数据传递给一个 Component，这个 Component 又通过 props 属性驱动多层 Component 子节点来展示界面。在这种数据传递关系中，多个 Component 都是 View，但从 Store 获得数据的那个 View 比较特殊，称为 "Controller View"（见上图）。将 Controller View 与 View 对应到 Shadow Widget 的 MVVM 框架，Controller View 就是 VM（ViewModel），由 VM 驱动的子级 Component 就是 V (View)。
 
-然而现实编程并非上图那么简单，Controller View 的子节点，也即 View 节点，有时很复杂，其外部若只依赖从上级 props 传递下来的数据来驱动渲染，会很别扭。开发者常不由自主的放弃 “纯净” 的编程模式，突破限制，让 View 也从全局变量读数据，即，变相的把部分数据从 Store 分离出去，改用全局变量表达，或者干脆让 View 也直接从 Store 读数据。
+然而现实编程并非上图那么简单，Controller View 的子节点，也即 View 节点，有时很复杂，其外部若只依赖从上级 props 传递下来的数据来驱动渲染，会很别扭。开发者常不由自主的放弃 “纯净” 的编程模式，突破限制，让 View 也从全局变量读数据，即，变相的把部分数据从 Store 分离出去，改用全局变量表达，或者干脆让 View 也直接从 Store 读数据，而不是只用 Controller View 代传的数据。
 
-Shadow Widget 将问题简化，既然 Store 主要用于存贮数据，那就还原它的数据特性，作为数据，在哪儿定义关系不大，我们拿 Component 的属性存贮数据就好，将 Store 并入 Component 没有不可逾越的障碍，当然，前提是我们已设计了 “双源属性” 与 “W 树” 机制。然后，Controller View 及其下级多个 View，合起来成为一个 FB（Functionarity Block），在同一 FBN（Functionarity Block Namespace）下用 javascript 定义各节点行为。把相关节点的投影定义写一起，很大程度消除了节点间隔阂，因为，你能随时定义一个变量来传递数据。
+Shadow Widget 将问题简化，既然 Store 主要用于存贮数据，那就还原它的数据特性，作为数据，在哪儿定义关系不大，直接拿 Component 的属性存贮数据就好，将 Store 并入 Component 没有不可逾越的障碍，当然，前提是我们已设计了 “双源属性” 与 “W 树” 机制。然后，Controller View 及其下级多个 View，合起来视作一个 FB（Functionarity Block），在同一 Functionarity Block Namespace 下用 javascript 定义各节点行为。把相关节点的投影定义写一起，很大程度消除了节点间隔阂，因为，你能随时可以定义一个变量用来传数据。
 
 ## 2. 正交框架分析模式
 
-接本文上篇的例子，假定我们在原功能基础上，再增加 “全局配置” 的功能，提供 3 个可选项：“自动选 Celsius 还是 Fahrenheit 格式”、“固定用 Celsius”、“固定用 Fahrenheit”。其中，第一个选项（自动选格式）依据浏览器特性推断国别信息，然后智能选择 Celsius 或 Fahrenheit。
+接本文上篇的例子，假定我们在原功能基础上，再增加 “全局配置” 的功能，提供 3 个可选项：“自动选 Celsius 还是 Fahrenheit 格式”、“固定用 Celsius”、“固定用 Fahrenheit”。其中，第一个选项 Auto（自动选格式）依据浏览器特性推断国别信息，然后智能选择 Celsius 或 Fahrenheit。
 
 新增如下界面设计：
 
@@ -40,7 +40,7 @@ idSetter['config'] = function(value,oldValue) {
 })();
 ```
 
-该 FB 的入口节点是 `configComp`。再接着细化设计，我们该将 `configComp` 定义挪到全局变量定义区，因为该节点在两个 FB 都用到。
+该 FB 的入口节点是 `configComp`。再接着细化设计，我们该将 `configComp` 定义挪到全局变量定义区，因为该节点在两个 FB 功能块都用到。
 
 为方便讲述起见，我们把这两个 FB 分别称为 config 与 calculator，以 FB 分布为横轴，以 W 树为纵轴，W 树中的节点是层层串联的，绘制这两个 FB 的分布如下图：
 
@@ -48,11 +48,11 @@ idSetter['config'] = function(value,oldValue) {
 
 **当我们整体设计 GUI 时，应以 MVVM 方式思考**。结合本例，也就是规划 config 与 calculator 两个 “功能块”，确定各功能块的入口节点，以及它的上下层串接关系。**而处理各个功能块之间联动关系时，应切换到 Flux 单向数据流思考方式。**
 
-总结一下，整个 HTML 页面是一颗 DOM 树，是纵向的，在这颗树划分若干功能块的过程，是基于 MVVM 为主的设计过程，而处理各功能块之间横向联系，则以 FRP 思路为主导。这一纵一横的思考方式，我们称为 **“正交框架” 分析模式**。
+总结一下，整个 HTML 页面是一颗 DOM 树，是纵向的，在这颗树划分若干功能块的过程，是基于 MVVM 为主的设计过程；而处理各功能块之间横向联系，则以 FRP 思路为主导。这一纵一横的思考方式，我们称为 **“正交框架” 分析模式**。
 
-说明，Flux 是 FRP（Functional Reactiv Programming）开发思想的一种实现，对于 React 开发，上面所提 FRP 与 Flux 是等效的。
+说明，Flux 是 FRP（Functional Reactiv Programming）开发思想的一种实现，对于 React 开发，上面所提 Flux 与 FRP 基本等效。
 
-接下来处理 FB 之间的功能交互，如果处理逻辑简单，不妨在相关 FB 中直接添加代码，如果逻辑复杂，不妨取相关 FB 的共有父节点作为入口节点，新设一个 FB 功能块。取共有父节点的主要作用是，该父节点从创建到 `unmount` 可以覆盖其内所有节点的生存周期，在它的 idSetter 函数中编程会方便一点。
+至于 FB 之间的功能如何交互，如果处理逻辑简单，不妨在相关 FB 代码块中直接写代码，如果逻辑复杂，不妨取相关 FB 的共有父节点作为入口节点，新设一个 FB 功能块。取共有父节点的主要作用是，该父节点从创建到 `unmount`，可以覆盖其下所有节点的生存周期，在它的 idSetter 函数中编程会方便一些。
 
 ## 3. 挂载数据来驱动调测
 
@@ -74,21 +74,23 @@ dataSrc['.body.calculator.field'] = { 'scale': 'f' };
 });
 ```
 
-其中，`var dataSrc = W.$dataSrc = {}` 表示启用 `W.$dataSrc`，缺省是不启用的。另一句 `dataSrc['.body.calculator.field'] = { 'scale': 'f' }`，用来预定义哪个节点要附加哪些属性的初值。更详细信息请参考《手册》中 “3.5.2” 小节。
+其中，`var dataSrc = W.$dataSrc = {}` 表示启用 `W.$dataSrc`，缺省是不启用的。另一句 `dataSrc['.body.calculator.field'] = { 'scale': 'f' }`，用来预定义哪个节点要附加哪些属性的初值。
 
 上面代码可以写入独立的 js 文件，多个此类 js 文件可构造不同的调测场景，然后用 `<script>` 标签按需把某一个 js 文件导入到被测页面。
 
-## 4. 结合 pinp-blogs 的可视化设计
+## 4. 结合 shadow-bootstrap 的可视化设计
 
-我们的最佳实践推荐在 `pinp-blogs` 项目基础上开发程序，这比最基础的只在 shadow-widget 之上做开发，多了 [shadow-slide](https://github.com/rewgt/shadow-slide) 与 [pinp-blogs](https://github.com/rewgt/blogs) 两种库的支持。
+[shadow-bootstrap](https://github.com/rewgt/shadow-bootstrap) 新近推出 v1.1 版本，Bootstrap 设计方式在 Shadow Widget 体系得到完整支持了。
 
-`pinp-blogs` 的链接表帮助设计者分解界面设计，比如设计界面时，先划分左边栏、上边栏、主内容区等若干 “功能块”，然后在多个胶片页中分别细化设计各块界面。这里所提 “功能块” 与本文前面所提 “功能块” 含义相同。功能块还可以分级，链接表的 root 列表指出首级 “功能块” 怎么拼装，链接表的次级定义则指示第二级、第三级等怎么拼装。细节请参考《PINP Blog 开发者手册》的 “2. 拼文编程快速入门” 一章。
+Bootstrap 提供了优秀的前端控件库，在 shadow-widget 上用 bootstrap 堪称完美，毕竟上百个 class 类谁都记不住，大家做开发时，要不停的查手册。用 shadow-widget 的可视化设计器，只需从右侧样板页拖一个样板扔进来，就创建你想要的构件了，然后选择相应节点，把相关属性配置一下，你的界面很快就做好。
 
-采用链接表有助于正交框架分析，梳理功能块如何划分，然后分而治之，在不同胶片页细化各功能块，将胶片页的 `noShow` 属性设为 `1`，它就用作模板了，只是设计态可见。
+![widget sample](md/res/D170615-01/bootstrap.png)
+
+上图是其中一个样板页，该拖入哪个样板，看一眼就能区分，不再受那么多 class 类名困扰了。
 
 ## 5. 注意事项
 
-刚开始使用 Shadow Widget 时，大家可能不适应它的可视化设计，容易忘掉几项设计约束，我尝试举例如下：
+刚开始使用 Shadow Widget 时，大家可能不适应它的可视化设计，容易忘掉几项设计约束，简单举几个例子：
 
 1. 在根节点（即 `".body"` 节点）下只能摆放面板与绝对定位的构件（如 ScenePage 等），即首层节点要么是 Panel 类构件，要么是指定 `position='absolute'` 的非行内构件。
 
@@ -98,7 +100,7 @@ dataSrc['.body.calculator.field'] = { 'scale': 'f' };
 
 4. 一个构件要么启用 `"html."` 属性，要么使用它的若干子节点，两者只能二选一，若定义子节点了，以 `"html."` 表示文本将被忽略。
 
-总之，与界面设计打交道，设计总是具体的，你要面对各类封装好的构件，不少构件有特殊使用要求，《Shadow Widget 用户手册》有全面介绍，有必要通读该手册。
+总之，与界面设计打交道，设计总是具体的，你要面对各类封装好的构件，不少构件有特殊要求，《Shadow Widget 用户手册》有全面介绍，有必要通读该手册。
 
 ## 6. 关于团队分工
 
@@ -106,7 +108,7 @@ Shadow Widget 最佳实践还建议团队成员要按技能分工，至少有两
 
 对于微型团队，也应按上述分工的思路规划您的产品开发，因为这两种分工的目标不同，前者着眼短期目标，尽快把产品做出来，把界面弄漂亮些，后者着眼中长期目标，用封装库提高开发复用率。即使是单人团队，同样需要分工，无非在时间上错开，一段时间承担一种角色，另一段时间换一个角色。
 
-Shadow Widget 当前的 WTC 类与界面库还不够丰富，但它的架子已搭好，起点不低。它的定制扩展能力出色，已通过上规模的产品 [`pinp-blogs`](https://github.com/rewgt/blogs) 检验，具备一定成熟度。我们有理由相信，这个产品会随着扩展库逐渐增多，发展会越来越好，前景越来越光明。
+Shadow Widget 当前的 WTC 类与界面库还不够丰富，但它的架子已搭好，起点不低。它的定制扩展能力出色，已通过一些上规模代码的产品检验，如 [`shadow-bootstrap`](https://github.com/rewgt/shadow-bootstrap)， [`pinp-blogs`](https://github.com/rewgt/blogs) 等，具备一定成熟度。我们有理由相信，这个产品会随着扩展库逐渐增多，前景越来越光明。
 
 &nbsp;
 <!-- SLIDE PAGES V1.0, DO NOT CHANGE THIS LINE. -->
