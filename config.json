@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_modify": 1508371164017,
+  "last_modify": 1508426421146,
   "user_name": "rewgt",
   "imported_repos": [
     [
@@ -16,7 +16,7 @@
       "tag": ".拼文产品",
       "markdown": true,
       "title": "前端 MVVM 与 FRP 的升阶实践：ReRest 可视化编程",
-      "modify_at": 1508333932698,
+      "modify_at": 1508426421146,
       "create_at": 1507797483702,
       "desc": "ReRest (Reactive Resource State Transfer) 是前端开发领域新兴的方法论体系，它继承了 MVVM 与 FRP 编程理念，在技术上有不少创新。本文从专利稿修改而来，主要介绍 ReRest 原理与若干实践经验。",
       "thumb": "md/res/D171012-01/thumbnail.jpg"
